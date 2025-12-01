@@ -801,6 +801,7 @@
                 const syncInputCode = ref('');
                 let unsubscribeFunc = null;
                 let debounceTimer = null;
+                let isSyncUpdate = false; // Flag to prevent sync loops
 
                 // --- DATA CONSTANTS ---
                 const categoryStyles = {
@@ -981,13 +982,14 @@
                 const addItem = (name, cat = 'other') => {
                     const finalName = name || newItemInput.value.trim();
                     if (!finalName) return;
-                    items.value.unshift({ id: Date.now(), name: finalName, checked: false, note: '', category: cat });
+                    items.value.unshift({ id: Date.now(), name: finalName, checked: false, note: '', category: cat, updatedAt: Date.now() });
                     newItemInput.value = '';
                     if (navigator.vibrate) navigator.vibrate(10);
                 };
 
                 const toggleCheck = (item) => {
                     item.checked = !item.checked;
+                    item.updatedAt = Date.now();
                     if (navigator.vibrate) navigator.vibrate(5);
                 };
 
@@ -1061,8 +1063,16 @@
 
                 const getLocalizedItemName = (item) => item[currentLang.value] || item['es'] || item['ca'] || Object.values(item)[0];
 
-                const openProductModal = (item) => { editingItem.value = item; };
-                const saveNote = () => { editingItem.value = null; };
+                const openProductModal = (item) => { editingItem.value = { ...item }; };
+
+                const saveNote = () => {
+                    const original = items.value.find(i => i.id === editingItem.value.id);
+                    if (original) {
+                        original.note = editingItem.value.note;
+                        original.updatedAt = Date.now();
+                    }
+                    editingItem.value = null;
+                };
 
                 // --- SYNC & PERSISTENCE ---
                 const loadLocalData = () => {
@@ -1074,11 +1084,37 @@
                         commonCategories.value = savedCats ? JSON.parse(savedCats) : JSON.parse(JSON.stringify(defaultData));
                     } catch (e) { console.error(e); commonCategories.value = JSON.parse(JSON.stringify(defaultData)); }
                 };
+                // --- DATA WATCHERS ---
+                watch([items, commonCategories], () => {
+                    if (!isSyncUpdate) saveData();
+                }, { deep: true });
 
                 const saveData = (forcePush = false) => {
                     localStorage.setItem('shopListItems', JSON.stringify(items.value));
                     localStorage.setItem('shopListCategories', JSON.stringify(commonCategories.value));
                     if (forcePush || (syncState.connected && isOnline.value)) debouncedPush();
+                };
+
+                // Smart merge function: merge remote items with local items using timestamps
+                const mergeItems = (localItems, remoteItems) => {
+                    const merged = new Map();
+
+                    // Add all local items to map
+                    localItems.forEach(item => {
+                        merged.set(item.id, { ...item, updatedAt: item.updatedAt || 0 });
+                    });
+
+                    // Merge with remote items - keep newer version
+                    remoteItems.forEach(remoteItem => {
+                        const localItem = merged.get(remoteItem.id);
+                        const remoteUpdatedAt = remoteItem.updatedAt || 0;
+
+                        if (!localItem || remoteUpdatedAt > localItem.updatedAt) {
+                            merged.set(remoteItem.id, { ...remoteItem, updatedAt: remoteUpdatedAt });
+                        }
+                    });
+
+                    return Array.from(merged.values());
                 };
 
                 const debouncedPush = () => {
@@ -1117,9 +1153,11 @@
                         if (unsubscribeFunc) unsubscribeFunc();
                         unsubscribeFunc = await pb.collection('shopping_lists').subscribe(record.id, (e) => {
                             if (e.action === 'update' && e.record.data) {
-                                items.value = e.record.data.items || [];
+                                isSyncUpdate = true;
+                                items.value = mergeItems(items.value, e.record.data.items || []);
                                 commonCategories.value = e.record.data.categories || commonCategories.value;
                                 localStorage.setItem('shopListItems', JSON.stringify(items.value));
+                                setTimeout(() => isSyncUpdate = false, 100);
                             } else if (e.action === 'delete') disconnectSync();
                         });
 
