@@ -559,8 +559,16 @@
                                     <span
                                         class="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm tracking-widest select-all">{{
                                         syncState.code }}</span>
-                                    <button @click="copyCode" class="text-slate-400 hover:text-blue-500 p-1"><i
-                                            class="fa-regular fa-copy"></i></button>
+                                    <div class="flex gap-1">
+                                        <button @click="copyCode" class="text-slate-400 hover:text-blue-500 p-1"
+                                            title="Copiar código">
+                                            <i class="fa-regular fa-copy"></i>
+                                        </button>
+                                        <button @click="shareOnWhatsApp" class="text-slate-400 hover:text-green-500 p-1"
+                                            title="Compartir por WhatsApp">
+                                            <i class="fa-brands fa-whatsapp text-base"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <button @click="disconnectSync"
                                     class="w-full text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 py-2 rounded-lg transition border border-transparent hover:border-red-100 dark:hover:border-red-900/30">{{
@@ -837,7 +845,7 @@
                 }, null, 2);
 
                 const translations = {
-                    es: { appTitle: 'ShopList', placeholder: 'Añadir producto...', quickAdd: 'Añadir Rápidamente', myList: 'Mi Lista', clearComp: 'Limpiar', empty: 'Tu lista está vacía', settings: 'Ajustes', data: 'Backup', export: 'Exportar', import: 'Importar', notes: 'Notas', saveNote: 'Guardar', add: 'Añadir', cats: { fruit: 'Fruta', veg: 'Verdura', meat: 'Carne/Pescado', dairy: 'Lácteos', pantry: 'Despensa/Pan', cleaning: 'Higiene/Limpieza', home: 'Hogar', snacks: 'Snacks/Dulces', frozen: 'Congelados', processed: 'Procesados', drinks: 'Bebidas', other: 'General/Otros' }, resetBtn: 'Restaurar de Fábrica', completed: 'Completados', progress: 'Progreso', cancel: 'Cancelar', sync: 'Sincronización', createList: 'Crear Lista', join: 'Unirse', disconnect: 'Desconectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestión de Productos', pbConfig: 'Configuración PocketBase', pbUrlPlaceholder: 'https://tu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Ver Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Código', connectPB: 'Conectar a PocketBase', changePB: 'Cambiar Servidor PB', disconnectPB: 'Desconectar de PB', currentServer: 'Servidor actual' },
+                    es: { appTitle: 'ShopList', placeholder: 'Añadir producto...', quickAdd: 'Añadir Rápidamente', myList: 'Mi Lista', clearComp: 'Limpiar', empty: 'Tu lista está vacía', settings: 'Ajustes', data: 'Backup', export: 'Exportar', import: 'Importar', notes: 'Notas', saveNote: 'Guardar', add: 'Añadir', cats: { fruit: 'Fruta', veg: 'Verdura', meat: 'Carnes/Pescado', dairy: 'Lácteos', pantry: 'Despensa/Pan', cleaning: 'Higiene/Limpieza', home: 'Hogar', snacks: 'Snacks/Dulces', frozen: 'Congelados', processed: 'Procesados', drinks: 'Bebidas', other: 'General/Otros' }, resetBtn: 'Restaurar de Fábrica', completed: 'Completados', progress: 'Progreso', cancel: 'Cancelar', sync: 'Sincronización', createList: 'Crear Lista', join: 'Unirse', disconnect: 'Desconectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestión de Productos', pbConfig: 'Configuración PocketBase', pbUrlPlaceholder: 'https://tu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Ver Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Código', connectPB: 'Conectar a PocketBase', changePB: 'Cambiar Servidor PB', disconnectPB: 'Desconectar de PB', currentServer: 'Servidor actual' },
                     ca: { appTitle: 'ShopList', placeholder: 'Afegir producte...', quickAdd: 'Afegir Ràpidament', myList: 'La Meva Llista', clearComp: 'Netejar', empty: 'La teva llista està buida', settings: 'Ajustos', data: 'Còpia', export: 'Exportar', import: 'Importar', notes: 'Notes', saveNote: 'Guardar', add: 'Afegir', cats: { fruit: 'Fruita', veg: 'Verdura', meat: 'Carn/Peix', dairy: 'Làctics', pantry: 'Rebost/Pa', cleaning: 'Higiene/Neteja', home: 'Llar', snacks: 'Snacks/Dolços', frozen: 'Congelats', processed: 'Processats', drinks: 'Begudes', other: 'General/Altres' }, resetBtn: 'Restaurar de Fàbrica', completed: 'Completats', progress: 'Progrés', cancel: 'Cancel·lar', sync: 'Sincronització', createList: 'Crear Llista', join: 'Unir-se', disconnect: 'Desconnectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestió de Productes', pbConfig: 'Configuració PocketBase', pbUrlPlaceholder: 'https://el-teu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Veure Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Codi', connectPB: 'Connectar a PocketBase', changePB: 'Canviar Servidor PB', disconnectPB: 'Desconnectar de PB', currentServer: 'Servidor actual' },
                     en: { appTitle: 'ShopList', placeholder: 'Add product...', quickAdd: 'Quick Add', myList: 'My List', clearComp: 'Clear', empty: 'Your list is empty', settings: 'Settings', data: 'Backup', export: 'Export', import: 'Import', notes: 'Notes', saveNote: 'Save', add: 'Add', cats: { fruit: 'Fruit', veg: 'Veg', meat: 'Meat/Fish', dairy: 'Dairy', pantry: 'Pantry/Bread', cleaning: 'Cleaning/Hygiene', home: 'Home', snacks: 'Snacks/Sweets', frozen: 'Frozen', processed: 'Processed', drinks: 'Drinks', other: 'General/Other' }, resetBtn: 'Factory Reset', completed: 'Completed', progress: 'Progress', cancel: 'Cancel', sync: 'Sync', createList: 'Create List', join: 'Join', disconnect: 'Disconnect', modePlan: 'Plan', modeShop: 'Shop', manageCatalog: 'Manage Products', pbConfig: 'PocketBase Configuration', pbUrlPlaceholder: 'https://your-pocketbase.com', test: 'Test', save: 'Save', viewSchema: 'View Schema JSON', pbSchema: 'PocketBase Schema', copySchema: 'Copy Schema', code: 'Code', connectPB: 'Connect to PocketBase', changePB: 'Change PB Server', disconnectPB: 'Disconnect from PB', currentServer: 'Current server' }
                 };
@@ -1202,6 +1210,14 @@
                 };
 
                 const copyCode = () => navigator.clipboard.writeText(syncState.code);
+
+                const shareOnWhatsApp = () => {
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    const shareUrl = `${baseUrl}?code=${syncState.code}&server=${encodeURIComponent(pbUrl.value)}`;
+                    const message = `¡Únete a mi lista de compras en ShopList!\n\nCódigo: ${syncState.code}\nServidor: ${pbUrl.value}\n\nAbre este enlace para conectarte automáticamente:\n${shareUrl}`;
+                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                };
                 const copySchema = () => {
                     navigator.clipboard.writeText(pbSchemaJson);
                     alert('Schema copied to clipboard!');
@@ -1314,12 +1330,35 @@
                     localStorage.setItem('shopListAppMode', appMode.value);
                 });
 
+                // --- INITIALIZATION ---
                 onMounted(() => {
                     loadLocalData();
-                    updateTheme();
+                    updateTheme(); // Renamed from applySavedTheme()
 
                     const savedCode = localStorage.getItem('shopListSyncCode');
-                    if (savedCode && isOnline.value) connectSync(savedCode);
+                    if (savedCode && pb && isOnline.value) connectSync(savedCode); // Added pb and isOnline check
+
+                    // Check URL parameters for auto-configuration
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlCode = urlParams.get('code');
+                    const urlServer = urlParams.get('server');
+
+                    if (urlCode && urlServer) {
+                        // Auto-configure from shared link
+                        pbUrlInput.value = urlServer;
+                        pbUrl.value = urlServer;
+                        localStorage.setItem('shopListPbUrl', urlServer);
+                        pb = new PocketBase(urlServer);
+                        pb.autoCancellation(false);
+
+                        // Auto-connect to sync
+                        setTimeout(() => {
+                            syncInputCode.value = urlCode;
+                            joinSharedList();
+                            // Clean URL
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }, 500);
+                    }
 
                     window.addEventListener('online', () => { isOnline.value = true; if (syncState.code && !syncState.connected) connectSync(syncState.code); });
                     window.addEventListener('offline', () => isOnline.value = false);
@@ -1338,7 +1377,7 @@
                     openQuickAddModal, confirmAddQuickItem, deleteQuickItem, openProductModal, saveNote,
                     addSettingsItem, removeSettingsItem,
                     toggleTheme, toggleAmoled, createSharedList, joinSharedList, disconnectSync, copyCode, copySchema,
-                    testPbConnection, savePbUrl, disconnectPB,
+                    testPbConnection, savePbUrl, disconnectPB, shareOnWhatsApp,
                     exportData, importData, resetDefaults, getLocalizedItemName
                 };
             }
