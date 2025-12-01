@@ -515,9 +515,23 @@
                             class="fa-solid fa-xmark"></i></button>
                 </div>
                 <div class="space-y-4">
+                    <!-- Tabs -->
+                    <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
+                        <button @click="settingsTab = 'sync'"
+                            :class="settingsTab === 'sync' ? 'bg-white dark:bg-darkSurface text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'"
+                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all">{{ t.tabSync }}</button>
+                        <button @click="settingsTab = 'products'"
+                            :class="settingsTab === 'products' ? 'bg-white dark:bg-darkSurface text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'"
+                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all">{{ t.tabProducts
+                            }}</button>
+                        <button @click="settingsTab = 'other'"
+                            :class="settingsTab === 'other' ? 'bg-white dark:bg-darkSurface text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'"
+                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all">{{ t.tabOther }}</button>
+                    </div>
+
                     <!-- Sync Section -->
-                    <div
-                        class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                    <div v-if="settingsTab === 'sync'"
+                        class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 animate-fade-in">
                         <h4
                             class="text-xs font-bold text-blue-500 dark:text-blue-400 uppercase mb-3 tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-server"></i> {{ t.sync }}
@@ -593,40 +607,21 @@
                         </div>
                     </div>
 
-                    <!-- Amoled Toggle -->
-                    <div
-                        class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm">
-                                <i class="fa-solid fa-moon"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400">Pure Black</p>
-                            </div>
-                        </div>
-                        <button @click="toggleAmoled"
-                            :class="isAmoled ? 'bg-slate-300 dark:bg-slate-700' : 'bg-slate-300 dark:bg-slate-700'"
-                            class="relative w-11 h-6 rounded-full transition-colors duration-300">
-                            <div :class="isAmoled ? 'translate-x-5' : 'translate-x-0'"
-                                class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300">
-                            </div>
-                        </button>
-                    </div>
-
                     <!-- CATALOG MANAGEMENT (NEW) -->
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <div v-if="settingsTab === 'products'" class="animate-fade-in">
                         <h4 class="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">{{ t.manageCatalog }}
                         </h4>
 
                         <!-- Category Selector -->
-                        <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
-                            <button v-for="(cat, key) in commonCategories" :key="key" @click="settingsActiveCat = key"
-                                :class="settingsActiveCat === key ? getCatStyle(key).active : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700'"
-                                class="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap">
-                                <span>{{ cat.icon }}</span> <span>{{ t.cats[key] }}</span>
-                            </button>
+                        <div class="mask-fade-edges -mx-6 px-6 sm:mask-none sm:mx-0 sm:px-0 mb-4">
+                            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 sm:overflow-visible sm:flex-wrap">
+                                <button v-for="(cat, key) in commonCategories" :key="key"
+                                    @click="settingsActiveCat = key"
+                                    :class="settingsActiveCat === key ? getCatStyle(key).active : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700'"
+                                    class="flex-shrink-0 sm:flex-shrink px-2.5 py-1.5 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap">
+                                    <span>{{ cat.icon }}</span> <span>{{ t.cats[key] }}</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Editor -->
@@ -660,31 +655,61 @@
                         </div>
                     </div>
 
-                    <!-- Backup -->
-                    <div class="mt-4">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider mt-2">{{ t.data }}
-                        </h4>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button @click="exportData"
-                                class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition bg-slate-50 dark:bg-slate-800/50">
-                                <div class="text-blue-600 dark:text-blue-400 mb-1 group-hover:scale-110 transition"><i
-                                        class="fa-solid fa-download text-lg"></i></div>
-                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.export }}</span>
+                    <!-- Others Section -->
+                    <div v-if="settingsTab === 'other'" class="animate-fade-in">
+                        <!-- Amoled Toggle -->
+                        <div
+                            class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm">
+                                    <i class="fa-solid fa-moon"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Pure Black</p>
+                                </div>
+                            </div>
+                            <button @click="toggleAmoled"
+                                :class="isAmoled ? 'bg-slate-300 dark:bg-slate-700' : 'bg-slate-300 dark:bg-slate-700'"
+                                class="relative w-11 h-6 rounded-full transition-colors duration-300">
+                                <div :class="isAmoled ? 'translate-x-5' : 'translate-x-0'"
+                                    class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300">
+                                </div>
                             </button>
-                            <label
-                                class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition cursor-pointer bg-slate-50 dark:bg-slate-800/50">
-                                <div class="text-green-600 dark:text-green-400 mb-1 group-hover:scale-110 transition"><i
-                                        class="fa-solid fa-upload text-lg"></i></div>
-                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.import }}</span>
-                                <input type="file" class="hidden" accept=".json" @change="importData">
-                            </label>
                         </div>
-                    </div>
 
-                    <div class="pt-2">
-                        <button @click="resetDefaults"
-                            class="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition flex items-center justify-center gap-2">{{
-                            t.resetBtn }}</button>
+                        <!-- Backup -->
+                        <div class="mb-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">{{ t.data }}
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button @click="exportData"
+                                    class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition bg-slate-50 dark:bg-slate-800/50">
+                                    <div class="text-blue-600 dark:text-blue-400 mb-1 group-hover:scale-110 transition">
+                                        <i class="fa-solid fa-download text-lg"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.export
+                                        }}</span>
+                                </button>
+                                <label
+                                    class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition cursor-pointer bg-slate-50 dark:bg-slate-800/50">
+                                    <div
+                                        class="text-green-600 dark:text-green-400 mb-1 group-hover:scale-110 transition">
+                                        <i class="fa-solid fa-upload text-lg"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.import
+                                        }}</span>
+                                    <input type="file" class="hidden" accept=".json" @change="importData">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button @click="resetDefaults"
+                                class="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition flex items-center justify-center gap-2">{{
+                                t.resetBtn }}</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -790,6 +815,7 @@
                 const isOnline = ref(navigator.onLine);
                 const showSchemaModal = ref(false);
                 const showPBConfigModal = ref(false);
+                const settingsTab = ref('sync');
 
                 // Settings Catalog State
                 const settingsActiveCat = ref('fruit');
@@ -845,9 +871,9 @@
                 }, null, 2);
 
                 const translations = {
-                    es: { appTitle: 'ShopList', placeholder: 'Añadir producto...', quickAdd: 'Añadir Rápidamente', myList: 'Mi Lista', clearComp: 'Limpiar', empty: 'Tu lista está vacía', settings: 'Ajustes', data: 'Backup', export: 'Exportar', import: 'Importar', notes: 'Notas', saveNote: 'Guardar', add: 'Añadir', cats: { fruit: 'Fruta', veg: 'Verdura', meat: 'Carnes/Pescado', dairy: 'Lácteos', pantry: 'Despensa/Pan', cleaning: 'Higiene/Limpieza', home: 'Hogar', snacks: 'Snacks/Dulces', frozen: 'Congelados', processed: 'Procesados', drinks: 'Bebidas', other: 'General/Otros' }, resetBtn: 'Restaurar de Fábrica', completed: 'Completados', progress: 'Progreso', cancel: 'Cancelar', sync: 'Sincronización', createList: 'Crear Lista', join: 'Unirse', disconnect: 'Desconectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestión de Productos', pbConfig: 'Configuración PocketBase', pbUrlPlaceholder: 'https://tu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Ver Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Código', connectPB: 'Conectar a PocketBase', changePB: 'Cambiar Servidor PB', disconnectPB: 'Desconectar de PB', currentServer: 'Servidor actual' },
-                    ca: { appTitle: 'ShopList', placeholder: 'Afegir producte...', quickAdd: 'Afegir Ràpidament', myList: 'La Meva Llista', clearComp: 'Netejar', empty: 'La teva llista està buida', settings: 'Ajustos', data: 'Còpia', export: 'Exportar', import: 'Importar', notes: 'Notes', saveNote: 'Guardar', add: 'Afegir', cats: { fruit: 'Fruita', veg: 'Verdura', meat: 'Carn/Peix', dairy: 'Làctics', pantry: 'Rebost/Pa', cleaning: 'Higiene/Neteja', home: 'Llar', snacks: 'Snacks/Dolços', frozen: 'Congelats', processed: 'Processats', drinks: 'Begudes', other: 'General/Altres' }, resetBtn: 'Restaurar de Fàbrica', completed: 'Completats', progress: 'Progrés', cancel: 'Cancel·lar', sync: 'Sincronització', createList: 'Crear Llista', join: 'Unir-se', disconnect: 'Desconnectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestió de Productes', pbConfig: 'Configuració PocketBase', pbUrlPlaceholder: 'https://el-teu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Veure Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Codi', connectPB: 'Connectar a PocketBase', changePB: 'Canviar Servidor PB', disconnectPB: 'Desconnectar de PB', currentServer: 'Servidor actual' },
-                    en: { appTitle: 'ShopList', placeholder: 'Add product...', quickAdd: 'Quick Add', myList: 'My List', clearComp: 'Clear', empty: 'Your list is empty', settings: 'Settings', data: 'Backup', export: 'Export', import: 'Import', notes: 'Notes', saveNote: 'Save', add: 'Add', cats: { fruit: 'Fruit', veg: 'Veg', meat: 'Meat/Fish', dairy: 'Dairy', pantry: 'Pantry/Bread', cleaning: 'Cleaning/Hygiene', home: 'Home', snacks: 'Snacks/Sweets', frozen: 'Frozen', processed: 'Processed', drinks: 'Drinks', other: 'General/Other' }, resetBtn: 'Factory Reset', completed: 'Completed', progress: 'Progress', cancel: 'Cancel', sync: 'Sync', createList: 'Create List', join: 'Join', disconnect: 'Disconnect', modePlan: 'Plan', modeShop: 'Shop', manageCatalog: 'Manage Products', pbConfig: 'PocketBase Configuration', pbUrlPlaceholder: 'https://your-pocketbase.com', test: 'Test', save: 'Save', viewSchema: 'View Schema JSON', pbSchema: 'PocketBase Schema', copySchema: 'Copy Schema', code: 'Code', connectPB: 'Connect to PocketBase', changePB: 'Change PB Server', disconnectPB: 'Disconnect from PB', currentServer: 'Current server' }
+                    es: { appTitle: 'ShopList', placeholder: 'Añadir producto...', quickAdd: 'Añadir Rápidamente', myList: 'Mi Lista', clearComp: 'Limpiar', empty: 'Tu lista está vacía', settings: 'Ajustes', data: 'Backup', export: 'Exportar', import: 'Importar', notes: 'Notas', saveNote: 'Guardar', add: 'Añadir', cats: { fruit: 'Fruta', veg: 'Verdura', meat: 'Carnes/Pescado', dairy: 'Lácteos', pantry: 'Despensa/Pan', cleaning: 'Higiene/Limpieza', home: 'Hogar', snacks: 'Snacks/Dulces', frozen: 'Congelados', processed: 'Procesados', drinks: 'Bebidas', other: 'General/Otros' }, resetBtn: 'Restaurar de Fábrica', completed: 'Completados', progress: 'Progreso', cancel: 'Cancelar', sync: 'Sincronización', createList: 'Crear Lista', join: 'Unirse', disconnect: 'Desconectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestión de Productos', pbConfig: 'Configuración PocketBase', pbUrlPlaceholder: 'https://tu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Ver Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Código', connectPB: 'Conectar a PocketBase', changePB: 'Cambiar Servidor PB', disconnectPB: 'Desconectar de PB', currentServer: 'Servidor actual', tabSync: 'Sync', tabProducts: 'Productos', tabOther: 'Otros' },
+                    ca: { appTitle: 'ShopList', placeholder: 'Afegir producte...', quickAdd: 'Afegir Ràpidament', myList: 'La Meva Llista', clearComp: 'Netejar', empty: 'La teva llista està buida', settings: 'Ajustos', data: 'Còpia', export: 'Exportar', import: 'Importar', notes: 'Notes', saveNote: 'Guardar', add: 'Afegir', cats: { fruit: 'Fruita', veg: 'Verdura', meat: 'Carn/Peix', dairy: 'Làctics', pantry: 'Rebost/Pa', cleaning: 'Higiene/Neteja', home: 'Llar', snacks: 'Snacks/Dolços', frozen: 'Congelats', processed: 'Processats', drinks: 'Begudes', other: 'General/Altres' }, resetBtn: 'Restaurar de Fàbrica', completed: 'Completats', progress: 'Progrés', cancel: 'Cancel·lar', sync: 'Sincronització', createList: 'Crear Llista', join: 'Unir-se', disconnect: 'Desconnectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestió de Productes', pbConfig: 'Configuració PocketBase', pbUrlPlaceholder: 'https://el-teu-pocketbase.com', test: 'Test', save: 'Guardar', viewSchema: 'Veure Schema JSON', pbSchema: 'Schema PocketBase', copySchema: 'Copiar Schema', code: 'Codi', connectPB: 'Connectar a PocketBase', changePB: 'Canviar Servidor PB', disconnectPB: 'Desconnectar de PB', currentServer: 'Servidor actual', tabSync: 'Sync', tabProducts: 'Productes', tabOther: 'Altres' },
+                    en: { appTitle: 'ShopList', placeholder: 'Add product...', quickAdd: 'Quick Add', myList: 'My List', clearComp: 'Clear', empty: 'Your list is empty', settings: 'Settings', data: 'Backup', export: 'Export', import: 'Import', notes: 'Notes', saveNote: 'Save', add: 'Add', cats: { fruit: 'Fruit', veg: 'Veg', meat: 'Meat/Fish', dairy: 'Dairy', pantry: 'Pantry/Bread', cleaning: 'Cleaning/Hygiene', home: 'Home', snacks: 'Snacks/Sweets', frozen: 'Frozen', processed: 'Processed', drinks: 'Drinks', other: 'General/Other' }, resetBtn: 'Factory Reset', completed: 'Completed', progress: 'Progress', cancel: 'Cancel', sync: 'Sync', createList: 'Create List', join: 'Join', disconnect: 'Disconnect', modePlan: 'Plan', modeShop: 'Shop', manageCatalog: 'Manage Products', pbConfig: 'PocketBase Configuration', pbUrlPlaceholder: 'https://your-pocketbase.com', test: 'Test', save: 'Save', viewSchema: 'View Schema JSON', pbSchema: 'PocketBase Schema', copySchema: 'Copy Schema', code: 'Code', connectPB: 'Connect to PocketBase', changePB: 'Change PB Server', disconnectPB: 'Disconnect from PB', currentServer: 'Current server', tabSync: 'Sync', tabProducts: 'Products', tabOther: 'Other' }
                 };
 
                 const defaultData = {
