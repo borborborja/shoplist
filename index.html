@@ -843,6 +843,7 @@
                 let unsubscribeFunc = null;
                 let debounceTimer = null;
                 let isSyncUpdate = false; // Flag to prevent sync loops
+                let lastPushedData = ''; // To prevent redundant pushes
 
                 // --- DATA CONSTANTS ---
                 const categoryStyles = {
@@ -1130,10 +1131,10 @@
                     if (!isSyncUpdate) saveData();
                 }, { deep: true });
 
-                const saveData = (forcePush = false) => {
+                const saveData = (forcePush = false, skipPush = false) => {
                     localStorage.setItem('shopListItems', JSON.stringify(items.value));
                     localStorage.setItem('shopListCategories', JSON.stringify(commonCategories.value));
-                    if (forcePush || (syncState.connected && isOnline.value)) debouncedPush();
+                    if (!skipPush && (forcePush || (syncState.connected && isOnline.value))) debouncedPush();
                 };
 
                 // Smart merge function: merge remote items with local items using timestamps
@@ -1160,6 +1161,11 @@
 
                 const debouncedPush = () => {
                     if (!pb || !syncState.recordId || !isOnline.value) return;
+
+                    // Deduplication check
+                    const currentData = JSON.stringify({ items: items.value, categories: commonCategories.value });
+                    if (currentData === lastPushedData) return;
+
                     syncState.msg = 'Syncing...'; syncState.msgClass = 'text-blue-400';
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(async () => {
@@ -1167,10 +1173,10 @@
                             await pb.collection('shopping_lists').update(syncState.recordId, {
                                 data: { items: items.value, categories: commonCategories.value }
                             });
-                            syncState.msg = 'Synced'; syncState.msgClass = 'text-green-500';
-                            setTimeout(() => syncState.msg = 'Connected', 2000);
+                            lastPushedData = currentData;
+                            syncState.msg = 'Connected'; syncState.msgClass = 'text-green-500';
                         } catch (e) { syncState.msg = 'Error saving'; syncState.msgClass = 'text-red-500'; }
-                    }, 500);
+                    }, 1000); // Increased debounce to 1s to reduce frequency
                 };
 
                 const connectSync = async (code) => {
@@ -1185,7 +1191,9 @@
                         if (record.data) {
                             items.value = record.data.items || [];
                             if (record.data.categories) commonCategories.value = record.data.categories;
-                            saveData(false);
+                            // Save to local storage but SKIP push since data came from server
+                            saveData(false, true);
+                            lastPushedData = JSON.stringify({ items: items.value, categories: commonCategories.value });
                         }
 
                         localStorage.setItem('shopListSyncCode', code);
@@ -1198,6 +1206,8 @@
                                 items.value = mergeItems(items.value, e.record.data.items || []);
                                 commonCategories.value = e.record.data.categories || commonCategories.value;
                                 localStorage.setItem('shopListItems', JSON.stringify(items.value));
+                                // Update lastPushedData to prevent echoing back
+                                lastPushedData = JSON.stringify({ items: items.value, categories: commonCategories.value });
                                 setTimeout(() => isSyncUpdate = false, 100);
                             } else if (e.action === 'delete') disconnectSync();
                         });
