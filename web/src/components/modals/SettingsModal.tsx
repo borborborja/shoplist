@@ -1,0 +1,322 @@
+import { useState } from 'react';
+import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, User, Package, Settings2 } from 'lucide-react';
+import { useShopStore } from '../../store/shopStore';
+import { translations, categoryStyles } from '../../data/constants';
+import { pb } from '../../lib/pocketbase';
+import { getLocalizedItemName } from '../../utils/helpers';
+import type { LocalizedItem, SettingsTab } from '../../types';
+
+interface SettingsModalProps {
+    onClose: () => void;
+}
+
+const SettingsModal = ({ onClose }: SettingsModalProps) => {
+    const {
+        lang, isAmoled, toggleAmoled,
+        categories, addCategoryItem, removeCategoryItem, addCategory, removeCategory,
+        items, resetDefaults, importData,
+        sync, setSyncState, syncFromRemote,
+        auth, setAuth, logout
+    } = useShopStore();
+    const t = translations[lang];
+
+    const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+    const [settingsActiveCat, setSettingsActiveCat] = useState<string>('fruit');
+    const [settingsNewItemVal, setSettingsNewItemVal] = useState('');
+    const [syncInputCode, setSyncInputCode] = useState('');
+
+    // Auth Form State
+    const [emailInput, setEmailInput] = useState('');
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordConfirmInput, setPasswordConfirmInput] = useState('');
+    const [authError, setAuthError] = useState('');
+
+    // Category Creator State
+    const [newCatKey, setNewCatKey] = useState('');
+    const [newCatIcon, setNewCatIcon] = useState('📦');
+
+    // --- Sync Logic ---
+    const connectSync = async (code: string) => {
+        if (!navigator.onLine) return;
+        setSyncState({ msg: 'Connecting...', msgType: 'info' });
+        try {
+            const record = await pb.collection('shopping_lists').getFirstListItem(`list_code="${code}"`);
+            if (record.data) {
+                syncFromRemote({ items: record.data.items || [], categories: record.data.categories || undefined });
+            }
+            setSyncState({ connected: true, code, recordId: record.id, msg: 'Connected', msgType: 'success' });
+            localStorage.setItem('shopListSyncCode', code);
+            pb.collection('shopping_lists').unsubscribe('*');
+            pb.collection('shopping_lists').subscribe(record.id, (e) => {
+                if (e.action === 'update' && e.record.data) {
+                    syncFromRemote({ items: e.record.data.items || [], categories: e.record.data.categories || undefined });
+                } else if (e.action === 'delete') { disconnectSync(); }
+            });
+        } catch { disconnectSync(); setSyncState({ msg: 'Code not found', msgType: 'error' }); }
+    };
+
+    const createSharedList = async () => {
+        if (!navigator.onLine) return alert('Offline');
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        try {
+            await pb.collection('shopping_lists').create({ list_code: newCode, data: { items, categories } });
+            connectSync(newCode);
+        } catch { alert('Error creating list'); }
+    };
+
+    const disconnectSync = () => {
+        pb.collection('shopping_lists').unsubscribe('*');
+        setSyncState({ connected: false, code: null, recordId: null, msg: '' });
+        localStorage.removeItem('shopListSyncCode');
+    };
+
+    // --- Auth Logic ---
+    const handleLogin = async () => {
+        setAuthError('');
+        try {
+            const authData = await pb.collection('users').authWithPassword(emailInput, passwordInput);
+            setAuth({ isLoggedIn: true, email: authData.record.email, userId: authData.record.id });
+            setEmailInput(''); setPasswordInput('');
+        } catch { setAuthError('Login failed'); }
+    };
+
+    const handleRegister = async () => {
+        setAuthError('');
+        if (passwordInput !== passwordConfirmInput) {
+            setAuthError('Passwords do not match');
+            return;
+        }
+        if (passwordInput.length < 8) {
+            setAuthError('Password must be at least 8 characters');
+            return;
+        }
+        try {
+            await pb.collection('users').create({ email: emailInput, password: passwordInput, passwordConfirm: passwordConfirmInput });
+            setAuthError('Check your email to verify your account');
+            setEmailInput(''); setPasswordInput(''); setPasswordConfirmInput('');
+        } catch { setAuthError('Registration failed'); }
+    };
+
+    const handleLogout = () => {
+        pb.authStore.clear();
+        logout();
+    };
+
+    // --- Catalog Logic ---
+    const handleAddSettingsItem = () => {
+        const name = settingsNewItemVal.trim();
+        if (name && settingsActiveCat) {
+            const newItem: LocalizedItem = { es: name, ca: name, en: name, [lang]: name };
+            addCategoryItem(settingsActiveCat, newItem);
+            setSettingsNewItemVal('');
+        }
+    };
+
+    const handleAddCategory = () => {
+        const key = newCatKey.trim().toLowerCase().replace(/\s+/g, '_');
+        if (key && !categories[key]) {
+            addCategory(key, newCatIcon);
+            setNewCatKey('');
+            setNewCatIcon('📦');
+            setSettingsActiveCat(key);
+        }
+    };
+
+    // --- Data Logic ---
+    const exportData = () => {
+        const blob = new Blob([JSON.stringify({ items, categories })], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `ShopList_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+    };
+    const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                if (confirm(t.resetBtn + '?')) { importData(data.items || data, data.categories); onClose(); }
+            } catch { alert('Error reading file'); }
+        };
+        reader.readAsText(file);
+    };
+
+    // --- Tab Render ---
+    const renderAccountTab = () => (
+        <div className="space-y-6 animate-fade-in">
+            {/* Sync Section */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                <h4 className="text-xs font-bold text-blue-500 uppercase mb-3 tracking-wider flex items-center gap-2"><Server size={12} /> {t.sync}</h4>
+                {sync.msg && <div className={`text-xs mb-2 font-mono ${sync.msgType === 'error' ? 'text-red-500' : sync.msgType === 'success' ? 'text-green-500' : 'text-blue-400'}`}>{sync.msg}</div>}
+                {!sync.connected ? (
+                    <div>
+                        <button onClick={createSharedList} className="w-full mb-3 bg-white dark:bg-darkSurface border border-blue-200 dark:border-blue-700 text-blue-600 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><Plus size={12} /> {t.createList}</button>
+                        <div className="flex gap-2">
+                            <input type="text" value={syncInputCode} onChange={(e) => setSyncInputCode(e.target.value)} placeholder="CODE..." className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs focus:outline-none dark:text-white uppercase tracking-widest font-mono text-center" />
+                            <button onClick={() => connectSync(syncInputCode.toUpperCase())} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs">{t.join}</button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <div className="flex items-center justify-between mb-3 bg-white dark:bg-darkSurface p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                            <span className="text-xs text-slate-400 uppercase font-bold pl-1">Code:</span>
+                            <span className="font-mono font-bold text-blue-600 text-sm tracking-widest select-all">{sync.code}</span>
+                            <button onClick={() => navigator.clipboard.writeText(sync.code!)} className="text-slate-400 hover:text-blue-500 p-1"><Copy size={12} /></button>
+                        </div>
+                        <button onClick={disconnectSync} className="w-full text-xs font-bold text-red-500 hover:bg-red-50 py-2 rounded-lg flex items-center justify-center gap-1.5"><LogOut size={12} /> {t.disconnect}</button>
+                    </div>
+                )}
+            </div>
+
+            {/* User Auth Section */}
+            <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                <h4 className="text-xs font-bold text-purple-500 uppercase mb-3 tracking-wider flex items-center gap-2"><User size={12} /> {t.email}</h4>
+                {authError && <div className="text-xs text-red-500 mb-2">{authError}</div>}
+                {!auth.isLoggedIn ? (
+                    <div className="space-y-2">
+                        <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t.email} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
+                        <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder={t.password} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
+                        <input type="password" value={passwordConfirmInput} onChange={(e) => setPasswordConfirmInput(e.target.value)} placeholder={t.passwordConfirm} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
+                        <div className="flex gap-2 pt-1">
+                            <button onClick={handleLogin} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-xs">{t.login}</button>
+                            <button onClick={handleRegister} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 rounded-lg font-bold text-xs">{t.register}</button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">{t.loggedAs}: <strong>{auth.email}</strong></p>
+                        <button onClick={handleLogout} className="w-full text-xs font-bold text-red-500 hover:bg-red-50 py-2 rounded-lg flex items-center justify-center gap-1.5"><LogOut size={12} /> Logout</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    const renderProductsTab = () => (
+        <div className="space-y-6 animate-fade-in">
+            {/* Category Creator */}
+            <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <h4 className="text-xs font-bold text-amber-600 uppercase mb-3 tracking-wider">{t.newCategory}</h4>
+                <div className="flex gap-2 items-center">
+                    <input type="text" value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)} className="w-12 text-center bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-lg focus:outline-none" maxLength={2} />
+                    <input type="text" value={newCatKey} onChange={(e) => setNewCatKey(e.target.value)} placeholder={t.categoryName} className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none dark:text-white" />
+                    <button onClick={handleAddCategory} className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"><Plus size={12} /></button>
+                </div>
+            </div>
+
+            {/* Existing Catalog Management */}
+            <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">{t.manageCatalog}</h4>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
+                    {Object.entries(categories).map(([key, cat]) => {
+                        const isActive = settingsActiveCat === key;
+                        const style = categoryStyles[key] || categoryStyles['other'];
+                        return (
+                            <button key={key} onClick={() => setSettingsActiveCat(key)} className={`flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap ${isActive ? style.active : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700'}`}>
+                                <span>{cat.icon}</span> <span>{(t.cats as Record<string, string>)[key] || key}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+
+                {settingsActiveCat && categories[settingsActiveCat] && (
+                    <div className="bg-slate-50 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-slate-500">{categories[settingsActiveCat].icon} {(t.cats as Record<string, string>)[settingsActiveCat] || settingsActiveCat}</span>
+                            {!['fruit', 'veg', 'meat', 'dairy', 'pantry', 'cleaning', 'home', 'snacks', 'frozen', 'processed', 'drinks', 'other'].includes(settingsActiveCat) && (
+                                <button onClick={() => { removeCategory(settingsActiveCat); setSettingsActiveCat('fruit'); }} className="text-[10px] text-red-500 hover:underline">{t.deleteCategory}</button>
+                            )}
+                        </div>
+                        <div className="flex gap-2 mb-3">
+                            <input type="text" value={settingsNewItemVal} onChange={(e) => setSettingsNewItemVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSettingsItem()} placeholder={t.placeholder} className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none dark:text-white" />
+                            <button onClick={handleAddSettingsItem} className="bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-lg text-xs font-bold"><Plus size={12} /></button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {categories[settingsActiveCat].items.map((item, idx) => {
+                                const style = categoryStyles[settingsActiveCat] || categoryStyles['other'];
+                                return (
+                                    <div key={idx} className="group relative">
+                                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold border dark:bg-opacity-20 ${style.pill}`}>{getLocalizedItemName(item, lang)}</span>
+                                        <button onClick={() => removeCategoryItem(settingsActiveCat, idx)} className="absolute -top-1 -right-1 bg-red-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition shadow-sm z-10"><X size={8} /></button>
+                                    </div>
+                                )
+                            })}
+                            {categories[settingsActiveCat].items.length === 0 && <div className="text-[10px] text-slate-400 italic w-full text-center py-2">{t.empty}</div>}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    const renderOtherTab = () => (
+        <div className="space-y-6 animate-fade-in">
+            {/* AMOLED Toggle */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm"><Moon size={16} /></div>
+                    <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4><p className="text-[10px] text-slate-500">Pure Black</p></div>
+                </div>
+                <button onClick={toggleAmoled} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isAmoled ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                    <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAmoled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </button>
+            </div>
+
+            {/* Data Backup */}
+            <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">{t.data}</h4>
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={exportData} className="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition bg-slate-50 dark:bg-slate-800/50">
+                        <div className="text-blue-600 mb-1 group-hover:scale-110 transition"><Download size={18} /></div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t.export}</span>
+                    </button>
+                    <label className="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-green-400 hover:bg-green-50 transition cursor-pointer bg-slate-50 dark:bg-slate-800/50">
+                        <div className="text-green-600 mb-1 group-hover:scale-110 transition"><Upload size={18} /></div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t.import}</span>
+                        <input type="file" className="hidden" accept=".json" onChange={handleImportData} />
+                    </label>
+                </div>
+            </div>
+
+            {/* Reset */}
+            <button onClick={() => { if (confirm(t.resetBtn + '?')) { resetDefaults(); onClose(); } }} className="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition flex items-center justify-center gap-2">
+                <Trash2 size={12} /> {t.resetBtn}
+            </button>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative w-11/12 max-w-md bg-white dark:bg-darkSurface rounded-2xl shadow-2xl p-6 animate-pop overflow-y-auto max-h-[90vh] ring-1 ring-white/10">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">{t.settings}</h3>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500"><X size={18} /></button>
+                </div>
+
+                {/* Tab Bar */}
+                <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <button onClick={() => setActiveTab('account')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}>
+                        <User size={14} /> {t.tabAccount}
+                    </button>
+                    <button onClick={() => setActiveTab('products')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'products' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-sm' : 'text-slate-500'}`}>
+                        <Package size={14} /> {t.tabProducts}
+                    </button>
+                    <button onClick={() => setActiveTab('other')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm' : 'text-slate-500'}`}>
+                        <Settings2 size={14} /> {t.tabOther}
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'account' && renderAccountTab()}
+                {activeTab === 'products' && renderProductsTab()}
+                {activeTab === 'other' && renderOtherTab()}
+            </div>
+        </div>
+    );
+};
+
+export default SettingsModal;

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ShopList Vue</title>
+    
+    <!-- IMPORTS -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PocketBase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.21.3/pocketbase.umd.min.js"></script>
+    <!-- Vue 3 Global -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- CONFIGURACIÓN GLOBAL -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'] },
+                    colors: { darkBg: '#0f172a', darkSurface: '#1e293b' },
+                    animation: {
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite',
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        'pop': 'pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    },
+                    keyframes: {
+                        'shake': { '0%, 100%': { transform: 'rotate(0deg)' }, '25%': { transform: 'rotate(1deg)' }, '75%': { transform: 'rotate(-1deg)' } },
+                        'fadeIn': { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        'slideUp': { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        'pop': { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* ESTILOS PERSONALIZADOS */
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+        .dark .glass { background: rgba(15, 23, 42, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-footer { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(0, 0, 0, 0.05); }
+        .dark .glass-footer { background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .modal-overlay { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* AMOLED MODE */
+        html.amoled.dark body { background-color: #000000; color: #e2e8f0; }
+        html.amoled.dark .glass, html.amoled.dark .glass-footer { background: rgba(0, 0, 0, 0.95); border-color: #222; }
+        html.amoled.dark .dark\:bg-darkSurface { background-color: #0a0a0a; border: 1px solid #222; }
+        html.amoled.dark input, html.amoled.dark textarea { background-color: #000000; border-color: #333; }
+        .mask-fade-edges { -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%); }
+        
+        /* TRANSICIONES VUE */
+        .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+        .list-enter-from, .list-leave-to { opacity: 0; transform: translateX(-20px); }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-darkBg dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300 font-sans antialiased selection:bg-blue-100 dark:selection:bg-blue-900 pb-24">
+    
+    <!-- APP WRAPPER -->
+    <div id="app" v-cloak>
+        
+        <!-- HEADER -->
+        <header class="fixed top-0 w-full z-40 glass transition-all duration-300 h-16">
+            <div class="max-w-3xl mx-auto px-4 h-full flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/20">
+                        <i class="fa-solid fa-basket-shopping"></i>
+                    </div>
+                    <h1 class="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 hidden sm:block">{{ t.appTitle }}</h1>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center shadow-inner border border-slate-200/50 dark:border-slate-700/50 mr-2 relative">
+                        <button @click="appMode = 'planning'" :class="{'bg-white dark:bg-darkSurface text-blue-600 dark:text-blue-400 shadow-sm': appMode === 'planning', 'text-slate-500 dark:text-slate-400': appMode !== 'planning'}" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5">
+                            {{ t.modePlan }}
+                        </button>
+                        <button @click="appMode = 'shopping'" :class="{'bg-white dark:bg-darkSurface text-emerald-600 dark:text-emerald-400 shadow-sm': appMode === 'shopping', 'text-slate-500 dark:text-slate-400': appMode !== 'shopping'}" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5">
+                             {{ t.modeShop }}
+                        </button>
+                    </div>
+                    <button @click="showSettings = true" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition duration-300">
+                        <i class="fa-solid fa-gear text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- OFFLINE BANNER -->
+        <transition name="fade">
+            <div v-if="!isOnline" class="fixed top-16 left-0 w-full bg-amber-500/90 backdrop-blur-sm text-white text-center text-[10px] font-bold uppercase tracking-widest py-1 z-30 shadow-lg">
+                <i class="fa-solid fa-wifi-slash mr-1"></i> Offline Mode - Saving Locally
+            </div>
+        </transition>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-grow pt-20 px-4 max-w-3xl mx-auto w-full">
+            
+            <!-- BLOCK: PLANNING UI -->
+            <transition name="fade" mode="out-in">
+                <div v-show="appMode === 'planning'" key="planning">
+                    <!-- Input -->
+                    <div class="mb-6 relative group z-10">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+                        <div class="relative flex shadow-xl shadow-indigo-500/5 rounded-2xl overflow-hidden bg-white dark:bg-darkSurface transition-colors ring-1 ring-slate-900/5 dark:ring-white/10">
+                            <input type="text" v-model="newItemInput" @keypress.enter="addItem(null)" class="flex-grow p-4 pl-5 bg-transparent focus:outline-none dark:text-white placeholder-slate-400 text-lg font-medium" :placeholder="t.placeholder">
+                            <button @click="addItem(null)" class="bg-blue-600 hover:bg-blue-700 text-white px-5 font-bold transition flex items-center justify-center border-l border-slate-100 dark:border-slate-700">
+                                <i class="fa-solid fa-plus text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Categories Scroll -->
+                    <div class="mb-8 select-none">
+                        <div class="flex justify-between items-end mb-2 px-1">
+                            <h3 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{{ t.quickAdd }}</h3>
+                        </div>
+                        <div class="mask-fade-edges -mx-4 px-4">
+                            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                                <button v-for="(cat, key) in commonCategories" :key="key" 
+                                    @click="toggleCategory(key)"
+                                    :class="activeCategory === key ? getCatStyle(key).active : 'bg-white dark:bg-darkSurface text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'"
+                                    class="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border shadow-sm outline-none">
+                                    <span class="text-lg leading-none">{{ cat.icon }}</span> <span>{{ t.cats[key] || key }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category Items Panel -->
+                        <div v-if="activeCategory" class="mt-1 bg-white dark:bg-darkSurface rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700/50 overflow-hidden animate-pop ring-1 ring-black/5 dark:ring-white/5">
+                            <div class="flex justify-between items-center px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50 backdrop-blur-sm">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xl filter drop-shadow-sm">{{ commonCategories[activeCategory].icon }}</span>
+                                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{{ t.cats[activeCategory] }}</span>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button @click="openQuickAddModal" class="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1.5 rounded-full text-xs font-bold transition">
+                                        <i class="fa-solid fa-plus"></i> {{ t.add }}
+                                    </button>
+                                    <button @click="isQuickEditMode = !isQuickEditMode" :class="isQuickEditMode ? 'text-red-500 bg-red-50' : 'text-slate-400 hover:text-slate-600'" class="w-8 h-8 flex items-center justify-center rounded-full transition">
+                                        <i :class="isQuickEditMode ? 'fa-solid fa-check' : 'fa-solid fa-pen text-xs'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex flex-wrap gap-2">
+                                <div v-for="(item, idx) in commonCategories[activeCategory].items" :key="idx" class="relative group">
+                                    <button @click="isQuickEditMode ? deleteQuickItem(idx) : addItem(getLocalizedItemName(item), activeCategory)"
+                                        :class="[getCatStyle(activeCategory).pill, isQuickEditMode ? 'animate-shake border-red-300 text-red-500' : '']"
+                                        class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border shadow-sm outline-none dark:bg-opacity-20">
+                                        {{ getLocalizedItemName(item) }}
+                                    </button>
+                                    <button v-if="isQuickEditMode" @click.stop="deleteQuickItem(idx)" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] shadow-sm z-10 hover:bg-red-600">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- BLOCK: SHOPPING UI -->
+            <transition name="fade" mode="out-in">
+                <div v-show="appMode === 'shopping'" class="mb-6" key="shopping">
+                    <!-- Progress -->
+                    <div class="bg-white dark:bg-darkSurface p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+                        <div class="flex justify-between w-full text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            <span>{{ t.progress }}</span>
+                            <div class="flex gap-2">
+                                <span>{{ progress.count }} / {{ progress.total }}</span>
+                                <span class="text-slate-400 dark:text-slate-500">{{ progress.percent }}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                            <div class="h-full bg-gradient-to-r from-green-400 to-emerald-600 rounded-full transition-all duration-500 ease-out shadow-sm" :style="{ width: progress.percent + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- BLOCK: LIST UI -->
+            <div>
+                <div class="flex justify-between items-end mb-4 px-1">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">{{ t.myList }}</h2>
+                        <div v-if="syncState.connected" class="flex items-center justify-center w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="cycleViewMode" class="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg transition shadow-sm">
+                            <i :class="viewModeIcon"></i> {{ viewModeText }}
+                        </button>
+                        <button v-if="completedItems.length > 0" @click="clearCompleted" class="text-[10px] font-bold text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 px-3 py-1.5 rounded-lg transition uppercase tracking-wider bg-white dark:bg-slate-800 border border-transparent hover:border-red-100">
+                            {{ t.clearComp }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-if="items.length === 0" class="text-center py-16 flex flex-col items-center justify-center opacity-50">
+                    <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-basket-shopping text-3xl text-slate-300 dark:text-slate-600"></i>
+                    </div>
+                    <p class="text-sm text-slate-400 font-bold tracking-wide">{{ t.empty }}</p>
+                </div>
+
+                <!-- Active Items Grouped -->
+                <div v-for="(group, key) in activeItemsGrouped" :key="key" class="mb-2 animate-slide-up">
+                    <div class="flex items-center gap-2 mb-2 pl-1">
+                        <span class="text-lg">{{ commonCategories[key]?.icon || '📌' }}</span>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.cats[key] || key }}</h3>
+                        <span class="text-[10px] font-bold text-slate-300 bg-slate-100 dark:bg-slate-800 dark:text-slate-600 px-1.5 rounded-md ml-auto">{{ group.length }}</span>
+                    </div>
+                    <div :class="{'grid grid-cols-2 gap-2': viewMode === 'grid', 'space-y-2': viewMode !== 'grid'}">
+                        <div v-for="item in group" :key="item.id" @click="openProductModal(item)" 
+                             :class="getItemClass" class="group relative flex items-center bg-white dark:bg-darkSurface rounded-xl transition-all border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-md overflow-hidden cursor-pointer active:scale-[0.99]">
+                            <!-- Accent -->
+                            <div :class="getCatStyle(key).bgSolid" class="absolute left-0 top-0 bottom-0 w-1.5"></div>
+                            
+                            <!-- Check -->
+                            <div class="flex-shrink-0 ml-2 mr-3 z-10" @click.stop>
+                                <button @click="toggleCheck(item)" class="rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 flex items-center justify-center transition-all bg-transparent text-transparent" :class="viewMode === 'compact' ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-grow overflow-hidden z-10 py-2">
+                                <p class="font-bold truncate text-slate-700 dark:text-slate-200" :class="viewMode === 'compact' ? 'text-xs' : 'text-sm'">{{ item.name }}</p>
+                                <p v-if="item.note && viewMode !== 'compact'" class="text-[10px] text-slate-400 truncate mt-0.5"><i class="fa-regular fa-note-sticky mr-1"></i>{{ item.note }}</p>
+                            </div>
+
+                            <!-- Delete -->
+                            <button @click.stop="deleteItem(item.id)" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition z-10 opacity-0 group-hover:opacity-100">
+                                <i class="fa-solid fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Items -->
+                <div v-if="completedItems.length > 0" class="mt-8 pt-6 border-t border-dashed border-slate-200 dark:border-slate-700/50 opacity-60 hover:opacity-100 transition-opacity">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+                        <span>{{ t.completed }}</span>
+                        <span class="bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{{ completedItems.length }}</span>
+                    </h3>
+                    <div :class="{'grid grid-cols-2 gap-2': viewMode === 'grid', 'space-y-2': viewMode !== 'grid'}">
+                        <div v-for="item in completedItems" :key="item.id" @click="openProductModal(item)"
+                             :class="getItemClass" class="flex items-center bg-slate-50 dark:bg-slate-800/50 rounded-xl transition-all border border-transparent grayscale cursor-pointer">
+                            <div class="flex-shrink-0 mr-3" @click.stop>
+                                <button @click="toggleCheck(item)" class="rounded-full border-2 border-slate-400 bg-slate-400 dark:border-slate-600 dark:bg-slate-600 text-white flex items-center justify-center" :class="viewMode === 'compact' ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                            </div>
+                            <div class="flex-grow overflow-hidden">
+                                <p class="font-medium truncate transition-all line-through text-slate-400" :class="viewMode === 'compact' ? 'text-xs' : 'text-sm'">{{ item.name }}</p>
+                            </div>
+                            <button @click.stop="deleteItem(item.id)" class="p-2 text-slate-300 hover:text-red-500 hover:bg-slate-200 rounded-lg">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="fixed bottom-0 w-full glass-footer z-30 pb-safe">
+            <div class="max-w-3xl mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <select v-model="currentLang" class="bg-transparent text-xs font-bold text-slate-500 dark:text-slate-400 focus:outline-none cursor-pointer uppercase tracking-wider hover:text-blue-500 transition">
+                            <option value="ca">CA</option>
+                            <option value="es">ES</option>
+                            <option value="en">EN</option>
+                        </select>
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">&copy; Borja Balsera</div>
+                    <div class="flex justify-end">
+                        <button @click="toggleTheme" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-700">
+                            <i v-if="isDark" class="fa-solid fa-moon text-indigo-400 text-xs"></i>
+                            <i v-else class="fa-solid fa-sun text-orange-400 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <!-- MODALS -->
+        
+        <!-- Quick Add Modal -->
+        <div v-if="showQuickAddModal" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 modal-overlay transition-opacity" @click="showQuickAddModal = false"></div>
+            <div class="relative w-11/12 max-w-sm bg-white dark:bg-darkSurface rounded-2xl shadow-2xl p-6 animate-pop ring-1 ring-black/5 dark:ring-white/10 z-50">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4 text-center">
+                    <span class="font-normal text-sm text-slate-400 block uppercase tracking-wider mb-1">Afegir a</span> {{ t.cats[activeCategory] }}
+                </h3>
+                <div class="relative mb-5">
+                    <input ref="quickAddInputRef" type="text" v-model="quickAddValue" @keypress.enter="confirmAddQuickItem" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all dark:text-white" placeholder="...">
+                </div>
+                <div class="flex gap-3">
+                    <button @click="showQuickAddModal = false" class="flex-1 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 font-bold text-sm bg-transparent">{{ t.cancel }}</button>
+                    <button @click="confirmAddQuickItem" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 transition font-bold text-sm">{{ t.add }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product/Note Modal -->
+        <div v-if="editingItem" class="fixed inset-0 z-50 flex items-center justify-center sm:items-center items-end">
+            <div class="absolute inset-0 modal-overlay transition-opacity" @click="editingItem = null"></div>
+            <div class="relative w-full sm:w-[28rem] bg-white dark:bg-darkSurface rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 flex flex-col max-h-[85vh] animate-slide-up m-0 sm:m-4 ring-1 ring-white/10">
+                <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6 sm:hidden"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="pr-8">
+                        <h3 class="text-2xl font-bold text-slate-800 dark:text-white break-words leading-tight mb-2">{{ editingItem.name }}</h3>
+                        <span :class="getCatStyle(editingItem.category).bgSolid" class="text-[10px] font-bold px-2.5 py-1 rounded-full text-white uppercase tracking-wider shadow-sm opacity-80">{{ t.cats[editingItem.category] || editingItem.category }}</span>
+                    </div>
+                    <button @click="editingItem = null" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="mb-4 flex-grow overflow-y-auto">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2.5 ml-1">{{ t.notes }}</label>
+                    <textarea v-model="editingItem.note" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all placeholder-slate-400 dark:text-slate-200 min-h-[120px]" placeholder="..."></textarea>
+                </div>
+                <button @click="saveNote" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl shadow-lg shadow-blue-500/30 transition font-bold text-sm">{{ t.saveNote }}</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div v-if="showSettings" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 modal-overlay" @click="showSettings = false"></div>
+            <div class="relative w-11/12 max-w-sm bg-white dark:bg-darkSurface rounded-2xl shadow-2xl p-6 animate-pop overflow-y-auto max-h-[90vh] ring-1 ring-white/10">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
+                    <h3 class="text-xl font-bold text-slate-800 dark:text-white">{{ t.settings }}</h3>
+                    <button @click="showSettings = false" class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <!-- Sync Section -->
+                    <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                        <h4 class="text-xs font-bold text-blue-500 dark:text-blue-400 uppercase mb-3 tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-server"></i> {{ t.sync }} (PB)
+                        </h4>
+                        <div v-if="syncState.msg" :class="syncState.msgClass" class="text-xs mb-2 font-mono">{{ syncState.msg }}</div>
+                        
+                        <div v-if="!syncState.connected">
+                            <button @click="createSharedList" class="w-full mb-3 bg-white dark:bg-darkSurface border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 py-2.5 rounded-xl font-bold text-xs shadow-sm transition"><i class="fa-solid fa-plus mr-1.5"></i> {{ t.createList }}</button>
+                            <div class="flex gap-2">
+                                <input v-model="syncInputCode" type="text" placeholder="CODE..." class="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs focus:outline-none dark:text-white uppercase tracking-widest font-mono text-center">
+                                <button @click="joinSharedList" class="bg-slate-800 dark:bg-slate-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm">{{ t.join }}</button>
+                            </div>
+                        </div>
+
+                        <div v-else>
+                            <div class="flex items-center justify-between mb-3 bg-white dark:bg-darkSurface p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                                <span class="text-xs text-slate-400 uppercase font-bold pl-1">Codi:</span>
+                                <span class="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm tracking-widest select-all">{{ syncState.code }}</span>
+                                <button @click="copyCode" class="text-slate-400 hover:text-blue-500 p-1"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <button @click="disconnectSync" class="w-full text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 py-2 rounded-lg transition border border-transparent hover:border-red-100 dark:hover:border-red-900/30">{{ t.disconnect }}</button>
+                        </div>
+                    </div>
+
+                    <!-- Amoled Toggle -->
+                    <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-moon"></i></div>
+                            <div><h4 class="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4><p class="text-[10px] text-slate-500 dark:text-slate-400">Pure Black</p></div>
+                        </div>
+                        <button @click="toggleAmoled" :class="isAmoled ? 'bg-slate-300 dark:bg-slate-700' : 'bg-slate-300 dark:bg-slate-700'" class="relative w-11 h-6 rounded-full transition-colors duration-300">
+                            <div :class="isAmoled ? 'translate-x-5' : 'translate-x-0'" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- CATALOG MANAGEMENT (NEW) -->
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">{{ t.manageCatalog }}</h4>
+                        
+                        <!-- Category Selector -->
+                        <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
+                            <button v-for="(cat, key) in commonCategories" :key="key" 
+                                @click="settingsActiveCat = key"
+                                :class="settingsActiveCat === key ? getCatStyle(key).active : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700'"
+                                class="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap">
+                                <span>{{ cat.icon }}</span> <span>{{ t.cats[key] }}</span>
+                            </button>
+                        </div>
+
+                        <!-- Editor -->
+                        <div v-if="settingsActiveCat" class="bg-slate-50 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50">
+                            <div class="flex gap-2 mb-3">
+                                <input v-model="settingsNewItemVal" @keypress.enter="addSettingsItem" type="text" :placeholder="t.placeholder" class="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none dark:text-white">
+                                <button @click="addSettingsItem" class="bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-lg text-xs font-bold"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <div v-for="(item, idx) in commonCategories[settingsActiveCat].items" :key="idx" class="group relative">
+                                    <span :class="getCatStyle(settingsActiveCat).pill" class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold border dark:bg-opacity-20">
+                                        {{ getLocalizedItemName(item) }}
+                                    </span>
+                                    <button @click="removeSettingsItem(idx)" class="absolute -top-1 -right-1 bg-red-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition shadow-sm z-10">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <div v-if="commonCategories[settingsActiveCat].items.length === 0" class="text-[10px] text-slate-400 italic w-full text-center py-2">
+                                    {{ t.empty }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Backup -->
+                    <div class="mt-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider mt-2">{{ t.data }}</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button @click="exportData" class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition bg-slate-50 dark:bg-slate-800/50">
+                                <div class="text-blue-600 dark:text-blue-400 mb-1 group-hover:scale-110 transition"><i class="fa-solid fa-download text-lg"></i></div>
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.export }}</span>
+                            </button>
+                            <label class="group flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition cursor-pointer bg-slate-50 dark:bg-slate-800/50">
+                                <div class="text-green-600 dark:text-green-400 mb-1 group-hover:scale-110 transition"><i class="fa-solid fa-upload text-lg"></i></div>
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ t.import }}</span>
+                                <input type="file" class="hidden" accept=".json" @change="importData">
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-2">
+                         <button @click="resetDefaults" class="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition flex items-center justify-center gap-2">{{ t.resetBtn }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC (VUE 3) -->
+    <script>
+        const { createApp, ref, computed, onMounted, watch, reactive, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // --- STATE ---
+                const items = ref([]);
+                const commonCategories = ref({});
+                const newItemInput = ref('');
+                const quickAddValue = ref('');
+                const quickAddInputRef = ref(null);
+                
+                // UI State
+                const currentLang = ref(localStorage.getItem('shopListLang') || 'ca');
+                const viewMode = ref(localStorage.getItem('shopListViewMode') || 'list');
+                const appMode = ref(localStorage.getItem('shopListAppMode') || 'planning');
+                const isDark = ref(localStorage.getItem('theme') === 'dark');
+                const isAmoled = ref(localStorage.getItem('shopListAmoled') === 'true');
+                const activeCategory = ref(null);
+                const isQuickEditMode = ref(false);
+                const showSettings = ref(false);
+                const showQuickAddModal = ref(false);
+                const editingItem = ref(null);
+                const isOnline = ref(navigator.onLine);
+
+                // Settings Catalog State
+                const settingsActiveCat = ref('fruit');
+                const settingsNewItemVal = ref('');
+
+                // PocketBase / Sync State
+                const pb = new PocketBase('https://pocketbase.micapum.net');
+                pb.autoCancellation(false);
+                const syncState = reactive({
+                    connected: false,
+                    code: null,
+                    recordId: null,
+                    msg: '',
+                    msgClass: ''
+                });
+                const syncInputCode = ref('');
+                let unsubscribeFunc = null;
+                let debounceTimer = null;
+
+                // --- DATA CONSTANTS ---
+                const categoryStyles = {
+                    fruit: { bgSolid: 'bg-red-400', active: 'bg-red-50 dark:bg-red-900/10 text-red-500 dark:text-red-400 border-red-400', pill: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300' },
+                    veg: { bgSolid: 'bg-green-500', active: 'bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 border-green-500', pill: 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' },
+                    meat: { bgSolid: 'bg-rose-500', active: 'bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-500', pill: 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300' },
+                    dairy: { bgSolid: 'bg-blue-400', active: 'bg-blue-50 dark:bg-blue-900/10 text-blue-500 dark:text-blue-400 border-blue-400', pill: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300' },
+                    pantry: { bgSolid: 'bg-amber-500', active: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-500', pill: 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300' },
+                    cleaning: { bgSolid: 'bg-cyan-500', active: 'bg-cyan-50 dark:bg-cyan-900/10 text-cyan-600 dark:text-cyan-400 border-cyan-500', pill: 'text-cyan-700 bg-cyan-50 border-cyan-200 dark:bg-cyan-900/20 dark:border-cyan-800 dark:text-cyan-300' },
+                    home: { bgSolid: 'bg-indigo-500', active: 'bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border-indigo-500', pill: 'text-indigo-700 bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300' },
+                    snacks: { bgSolid: 'bg-pink-500', active: 'bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400 border-pink-500', pill: 'text-pink-700 bg-pink-50 border-pink-200 dark:bg-pink-900/20 dark:border-pink-800 dark:text-pink-300' },
+                    frozen: { bgSolid: 'bg-sky-500', active: 'bg-sky-50 dark:bg-sky-900/10 text-sky-600 dark:text-sky-400 border-sky-500', pill: 'text-sky-700 bg-sky-50 border-sky-200 dark:bg-sky-900/20 dark:border-sky-800 dark:text-sky-300' },
+                    processed: { bgSolid: 'bg-orange-500', active: 'bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 border-orange-500', pill: 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300' },
+                    drinks: { bgSolid: 'bg-teal-500', active: 'bg-teal-50 dark:bg-teal-900/10 text-teal-600 dark:text-teal-400 border-teal-500', pill: 'text-teal-700 bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800 dark:text-teal-300' },
+                    other: { bgSolid: 'bg-slate-400', active: 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-400', pill: 'text-slate-600 bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-300' }
+                };
+
+                const translations = {
+                    es: { appTitle: 'ShopList', placeholder: 'Añadir producto...', quickAdd: 'Añadir Rápidamente', myList: 'Mi Lista', clearComp: 'Limpiar', empty: 'Tu lista está vacía', settings: 'Ajustes', data: 'Backup', export: 'Exportar', import: 'Importar', notes: 'Notas', saveNote: 'Guardar', add: 'Añadir', cats: { fruit: 'Fruta', veg: 'Verdura', meat: 'Carne/Pescado', dairy: 'Lácteos', pantry: 'Despensa/Pan', cleaning: 'Higiene/Limpieza', home: 'Hogar', snacks: 'Snacks/Dulces', frozen: 'Congelados', processed: 'Procesados', drinks: 'Bebidas', other: 'General/Otros' }, resetBtn: 'Restaurar de Fábrica', completed: 'Completados', progress: 'Progreso', cancel: 'Cancelar', sync: 'Sincronización', createList: 'Crear Lista', join: 'Unirse', disconnect: 'Desconectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestión de Productos' },
+                    ca: { appTitle: 'ShopList', placeholder: 'Afegir producte...', quickAdd: 'Afegir Ràpidament', myList: 'La Meva Llista', clearComp: 'Netejar', empty: 'La teva llista està buida', settings: 'Ajustos', data: 'Còpia', export: 'Exportar', import: 'Importar', notes: 'Notes', saveNote: 'Guardar', add: 'Afegir', cats: { fruit: 'Fruita', veg: 'Verdura', meat: 'Carn/Peix', dairy: 'Làctics', pantry: 'Rebost/Pa', cleaning: 'Higiene/Neteja', home: 'Llar', snacks: 'Snacks/Dolços', frozen: 'Congelats', processed: 'Processats', drinks: 'Begudes', other: 'General/Altres' }, resetBtn: 'Restaurar de Fàbrica', completed: 'Completats', progress: 'Progrés', cancel: 'Cancel·lar', sync: 'Sincronització', createList: 'Crear Llista', join: 'Unir-se', disconnect: 'Desconnectar', modePlan: 'Planificador', modeShop: 'Comprar', manageCatalog: 'Gestió de Productes' },
+                    en: { appTitle: 'ShopList', placeholder: 'Add product...', quickAdd: 'Quick Add', myList: 'My List', clearComp: 'Clear', empty: 'Your list is empty', settings: 'Settings', data: 'Backup', export: 'Export', import: 'Import', notes: 'Notes', saveNote: 'Save', add: 'Add', cats: { fruit: 'Fruit', veg: 'Veg', meat: 'Meat/Fish', dairy: 'Dairy', pantry: 'Pantry/Bread', cleaning: 'Cleaning/Hygiene', home: 'Home', snacks: 'Snacks/Sweets', frozen: 'Frozen', processed: 'Processed', drinks: 'Drinks', other: 'General/Other' }, resetBtn: 'Factory Reset', completed: 'Completed', progress: 'Progress', cancel: 'Cancel', sync: 'Sync', createList: 'Create List', join: 'Join', disconnect: 'Disconnect', modePlan: 'Plan', modeShop: 'Shop', manageCatalog: 'Manage Products' }
+                };
+
+                const defaultData = {
+                    fruit: { icon: '🍎', items: [{es:'Manzanas',ca:'Pomes',en:'Apples'}, {es:'Plátanos',ca:'Plàtans',en:'Bananas'}] },
+                    veg: { icon: '🥦', items: [{es:'Lechuga',ca:'Enciam',en:'Lettuce'}, {es:'Tomates',ca:'Tomàquets',en:'Tomatoes'}, {es:'Cebollas',ca:'Cebes',en:'Onions'}, {es:'Patatas',ca:'Patates',en:'Potatoes'}] },
+                    meat: { icon: '🥩', items: [{es:'Pollo',ca:'Pollastre',en:'Chicken'}, {es:'Ternera',ca:'Vedella',en:'Beef'}] },
+                    dairy: { icon: '🧀', items: [{es:'Leche',ca:'Llet',en:'Milk'}, {es:'Queso',ca:'Formatge',en:'Cheese'}, {es:'Yogur',ca:'Iogurt',en:'Yogurt'}] },
+                    pantry: { icon: '🍝', items: [{es:'Pan',ca:'Pa',en:'Bread'}, {es:'Arroz',ca:'Arròs',en:'Rice'}, {es:'Pasta',ca:'Pasta',en:'Pasta'}, {es:'Aceite',ca:'Oli',en:'Oil'}] },
+                    cleaning: { icon: '🧼', items: [{es:'Detergente',ca:'Detergent',en:'Detergent'}, {es:'Papel WC',ca:'Paper WC',en:'Toilet Paper'}] },
+                    home: { icon: '🏠', items: [{es:'Pilas',ca:'Piles',en:'Batteries'}] },
+                    snacks: { icon: '🍪', items: [{es:'Chocolate',ca:'Xocolata',en:'Chocolate'}, {es:'Patatas Chips',ca:'Patates Xips',en:'Chips'}] },
+                    frozen: { icon: '🧊', items: [{es:'Helado',ca:'Gelat',en:'Ice Cream'}, {es:'Pizza',ca:'Pizza',en:'Pizza'}] },
+                    processed: { icon: '🍕', items: [{es:'Pizza Fresca',ca:'Pizza Fresca',en:'Fresh Pizza'}] },
+                    drinks: { icon: '🍷', items: [{es:'Agua',ca:'Aigua',en:'Water'}, {es:'Vino',ca:'Vi',en:'Wine'}, {es:'Cerveza',ca:'Cervesa',en:'Beer'}] },
+                    other: { icon: '📦', items: [] } 
+                };
+
+                // --- COMPUTED ---
+                const t = computed(() => translations[currentLang.value]);
+                
+                const activeItemsGrouped = computed(() => {
+                    const groups = {};
+                    items.value.filter(i => !i.checked).forEach(item => {
+                        const cat = item.category || 'other';
+                        if (!groups[cat]) groups[cat] = [];
+                        groups[cat].push(item);
+                    });
+                    return groups;
+                });
+                
+                const completedItems = computed(() => items.value.filter(i => i.checked));
+                
+                const progress = computed(() => {
+                    const total = items.value.length;
+                    const count = completedItems.value.length;
+                    return { total, count, percent: total === 0 ? 0 : Math.round((count / total) * 100) };
+                });
+
+                const viewModeIcon = computed(() => ({'list': 'fa-solid fa-list', 'compact': 'fa-solid fa-bars', 'grid': 'fa-solid fa-border-all'}[viewMode.value]));
+                const viewModeText = computed(() => ({'list': t.value.viewList || 'List', 'compact': t.value.viewCompact || 'Compact', 'grid': t.value.viewGrid || 'Grid'}[viewMode.value]));
+
+                const getCatStyle = (key) => categoryStyles[key] || categoryStyles['other'];
+
+                const getItemClass = computed(() => {
+                    if (viewMode.value === 'list') return 'p-3.5 mb-2';
+                    if (viewMode.value === 'compact') return 'p-2 mb-1.5';
+                    if (viewMode.value === 'grid') return 'p-3 h-full mb-0';
+                    return '';
+                });
+
+                // --- ACTIONS ---
+                const addItem = (name, cat = 'other') => {
+                    const finalName = name || newItemInput.value.trim();
+                    if (!finalName) return;
+                    items.value.unshift({ id: Date.now(), name: finalName, checked: false, note: '', category: cat });
+                    newItemInput.value = '';
+                    if (navigator.vibrate) navigator.vibrate(10);
+                };
+
+                const toggleCheck = (item) => {
+                    item.checked = !item.checked;
+                    if (navigator.vibrate) navigator.vibrate(5);
+                };
+
+                const deleteItem = (id) => {
+                    items.value = items.value.filter(i => i.id !== id);
+                    if (navigator.vibrate) navigator.vibrate(10);
+                };
+
+                const clearCompleted = () => {
+                    if (confirm(t.value.clearComp + '?')) items.value = items.value.filter(i => !i.checked);
+                };
+
+                const cycleViewMode = () => {
+                    const modes = ['list', 'compact', 'grid'];
+                    viewMode.value = modes[(modes.indexOf(viewMode.value) + 1) % modes.length];
+                };
+
+                const toggleCategory = (key) => {
+                    if (activeCategory.value === key) {
+                        activeCategory.value = null;
+                        isQuickEditMode.value = false;
+                    } else {
+                        activeCategory.value = key;
+                        isQuickEditMode.value = false;
+                    }
+                };
+
+                // Quick Add Modal Logic
+                const openQuickAddModal = () => {
+                    showQuickAddModal.value = true;
+                    quickAddValue.value = '';
+                    nextTick(() => quickAddInputRef.value?.focus());
+                };
+
+                const confirmAddQuickItem = () => {
+                    const name = quickAddValue.value.trim();
+                    if (name && activeCategory.value) {
+                        const newItem = { es: name, ca: name, en: name };
+                        newItem[currentLang.value] = name;
+                        commonCategories.value[activeCategory.value].items.push(newItem);
+                        showQuickAddModal.value = false;
+                        saveData(true);
+                    }
+                };
+                
+                const deleteQuickItem = (idx) => {
+                    if (confirm('Delete?')) {
+                        commonCategories.value[activeCategory.value].items.splice(idx, 1);
+                        saveData(true);
+                    }
+                };
+
+                // Settings Catalog Logic
+                const addSettingsItem = () => {
+                    const name = settingsNewItemVal.value.trim();
+                    if (name && settingsActiveCat.value) {
+                        const newItem = { es: name, ca: name, en: name };
+                        newItem[currentLang.value] = name;
+                        commonCategories.value[settingsActiveCat.value].items.push(newItem);
+                        settingsNewItemVal.value = '';
+                        saveData(true);
+                    }
+                };
+
+                const removeSettingsItem = (idx) => {
+                    if(confirm('Delete?')) {
+                        commonCategories.value[settingsActiveCat.value].items.splice(idx, 1);
+                        saveData(true);
+                    }
+                }
+
+                const getLocalizedItemName = (item) => item[currentLang.value] || item['es'] || item['ca'] || Object.values(item)[0];
+
+                const openProductModal = (item) => { editingItem.value = item; };
+                const saveNote = () => { editingItem.value = null; }; 
+
+                // --- SYNC & PERSISTENCE ---
+                const loadLocalData = () => {
+                    try {
+                        const savedItems = localStorage.getItem('shopListItems');
+                        if (savedItems) items.value = JSON.parse(savedItems);
+                        
+                        const savedCats = localStorage.getItem('shopListCategories');
+                        commonCategories.value = savedCats ? JSON.parse(savedCats) : JSON.parse(JSON.stringify(defaultData));
+                    } catch (e) { console.error(e); commonCategories.value = JSON.parse(JSON.stringify(defaultData)); }
+                };
+
+                const saveData = (forcePush = false) => {
+                    localStorage.setItem('shopListItems', JSON.stringify(items.value));
+                    localStorage.setItem('shopListCategories', JSON.stringify(commonCategories.value));
+                    if (forcePush || (syncState.connected && isOnline.value)) debouncedPush();
+                };
+
+                const debouncedPush = () => {
+                    if (!syncState.recordId || !isOnline.value) return;
+                    syncState.msg = 'Syncing...'; syncState.msgClass = 'text-blue-400';
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(async () => {
+                        try {
+                            await pb.collection('shopping_lists').update(syncState.recordId, {
+                                data: { items: items.value, categories: commonCategories.value }
+                            });
+                            syncState.msg = 'Synced'; syncState.msgClass = 'text-green-500';
+                            setTimeout(() => syncState.msg = 'Connected', 2000);
+                        } catch (e) { syncState.msg = 'Error saving'; syncState.msgClass = 'text-red-500'; }
+                    }, 500);
+                };
+
+                const connectSync = async (code) => {
+                    if (!isOnline.value) return;
+                    syncState.msg = 'Connecting...'; syncState.msgClass = 'text-yellow-500';
+                    try {
+                        const record = await pb.collection('shopping_lists').getFirstListItem(`list_code="${code}"`);
+                        syncState.code = code;
+                        syncState.recordId = record.id;
+                        syncState.connected = true;
+                        
+                        if (record.data) {
+                            items.value = record.data.items || [];
+                            if (record.data.categories) commonCategories.value = record.data.categories;
+                            saveData(false); 
+                        }
+                        
+                        localStorage.setItem('shopListSyncCode', code);
+                        syncState.msg = 'Connected'; syncState.msgClass = 'text-green-500';
+
+                        if (unsubscribeFunc) unsubscribeFunc();
+                        unsubscribeFunc = await pb.collection('shopping_lists').subscribe(record.id, (e) => {
+                            if (e.action === 'update' && e.record.data) {
+                                items.value = e.record.data.items || [];
+                                commonCategories.value = e.record.data.categories || commonCategories.value;
+                                localStorage.setItem('shopListItems', JSON.stringify(items.value));
+                            } else if (e.action === 'delete') disconnectSync();
+                        });
+
+                    } catch (e) {
+                        disconnectSync();
+                        alert('Code not found or connection error');
+                    }
+                };
+
+                const createSharedList = async () => {
+                    if (!isOnline.value) return alert('Offline');
+                    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    try {
+                        await pb.collection('shopping_lists').create({
+                            list_code: newCode,
+                            data: { items: items.value, categories: commonCategories.value }
+                        });
+                        connectSync(newCode);
+                    } catch (e) { alert('Error creating list'); }
+                };
+
+                const joinSharedList = () => {
+                    if (syncInputCode.value.length > 1) connectSync(syncInputCode.value.toUpperCase());
+                };
+
+                const disconnectSync = () => {
+                    if (unsubscribeFunc) unsubscribeFunc();
+                    pb.collection('shopping_lists').unsubscribe('*');
+                    syncState.connected = false;
+                    syncState.code = null;
+                    syncState.recordId = null;
+                    localStorage.removeItem('shopListSyncCode');
+                    syncState.msg = '';
+                };
+
+                const copyCode = () => navigator.clipboard.writeText(syncState.code);
+
+                // --- UTILS ---
+                const toggleTheme = () => { isDark.value = !isDark.value; updateTheme(); };
+                const toggleAmoled = () => { isAmoled.value = !isAmoled.value; if(isAmoled.value) isDark.value = true; updateTheme(); };
+                
+                const updateTheme = () => {
+                    const root = document.documentElement;
+                    isDark.value ? root.classList.add('dark') : root.classList.remove('dark');
+                    isAmoled.value ? root.classList.add('amoled') : root.classList.remove('amoled');
+                    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+                    localStorage.setItem('shopListAmoled', isAmoled.value);
+                };
+
+                const exportData = () => {
+                    const blob = new Blob([JSON.stringify({ items: items.value, categories: commonCategories.value })], {type: "application/json"});
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `ShopList_Backup_${new Date().toISOString().slice(0,10)}.json`;
+                    link.click();
+                };
+
+                const importData = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (confirm(t.value.resetBtn + '?')) {
+                                items.value = data.items || data; // support legacy array
+                                if (data.categories) commonCategories.value = data.categories;
+                                saveData(true);
+                                showSettings.value = false;
+                            }
+                        } catch (err) { alert('Error'); }
+                    };
+                    reader.readAsText(file);
+                };
+
+                const resetDefaults = () => {
+                    if (confirm(t.value.resetBtn + '?')) {
+                        commonCategories.value = JSON.parse(JSON.stringify(defaultData));
+                        saveData(true);
+                        showSettings.value = false;
+                    }
+                };
+
+                // --- LIFECYCLE / WATCHERS ---
+                watch(items, () => saveData(), { deep: true });
+                watch([currentLang, viewMode, appMode], () => {
+                    localStorage.setItem('shopListLang', currentLang.value);
+                    localStorage.setItem('shopListViewMode', viewMode.value);
+                    localStorage.setItem('shopListAppMode', appMode.value);
+                });
+
+                onMounted(() => {
+                    loadLocalData();
+                    updateTheme();
+                    
+                    const savedCode = localStorage.getItem('shopListSyncCode');
+                    if (savedCode && isOnline.value) connectSync(savedCode);
+
+                    window.addEventListener('online', () => { isOnline.value = true; if(syncState.code && !syncState.connected) connectSync(syncState.code); });
+                    window.addEventListener('offline', () => isOnline.value = false);
+                });
+
+                return {
+                    // State
+                    items, commonCategories, newItemInput, currentLang, viewMode, appMode, isDark, isAmoled, activeCategory, 
+                    isQuickEditMode, showSettings, showQuickAddModal, editingItem, quickAddValue, quickAddInputRef, isOnline,
+                    syncState, syncInputCode, settingsActiveCat, settingsNewItemVal,
+                    // Computed
+                    t, activeItemsGrouped, completedItems, progress, viewModeIcon, viewModeText, getCatStyle, getItemClass,
+                    // Actions
+                    addItem, toggleCheck, deleteItem, clearCompleted, cycleViewMode, toggleCategory, 
+                    openQuickAddModal, confirmAddQuickItem, deleteQuickItem, openProductModal, saveNote,
+                    addSettingsItem, removeSettingsItem,
+                    toggleTheme, toggleAmoled, createSharedList, joinSharedList, disconnectSync, copyCode, 
+                    exportData, importData, resetDefaults, getLocalizedItemName
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
