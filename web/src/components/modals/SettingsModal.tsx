@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, User, Package, Settings2 } from 'lucide-react';
+import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2 } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles } from '../../data/constants';
 import { pb } from '../../lib/pocketbase';
@@ -15,8 +15,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
         lang, isAmoled, toggleAmoled,
         categories, addCategoryItem, removeCategoryItem, addCategory, removeCategory,
         items, resetDefaults, importData,
-        sync, setSyncState, syncFromRemote,
-        auth, setAuth, logout
+        sync, setSyncState, syncFromRemote
     } = useShopStore();
     const t = translations[lang];
 
@@ -25,15 +24,14 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     const [settingsNewItemVal, setSettingsNewItemVal] = useState('');
     const [syncInputCode, setSyncInputCode] = useState('');
 
-    // Auth Form State
-    const [emailInput, setEmailInput] = useState('');
-    const [passwordInput, setPasswordInput] = useState('');
-    const [passwordConfirmInput, setPasswordConfirmInput] = useState('');
-    const [authError, setAuthError] = useState('');
+
 
     // Category Creator State
     const [newCatKey, setNewCatKey] = useState('');
     const [newCatIcon, setNewCatIcon] = useState('📦');
+
+    // Pending sync record for merge/replace dialog
+    const [pendingSyncRecord, setPendingSyncRecord] = useState<{ id: string; code: string; data: { items: any[]; categories: any } } | null>(null);
 
     // --- Sync Logic ---
     const connectSync = async (code: string) => {
@@ -41,26 +39,58 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
         setSyncState({ msg: 'Connecting...', msgType: 'info' });
         try {
             const record = await pb.collection('shopping_lists').getFirstListItem(`list_code="${code}"`);
-            if (record.data) {
-                syncFromRemote({ items: record.data.items || [], categories: record.data.categories || undefined });
+            const remoteData = record.data || { items: [], categories: undefined };
+
+            // If user has local items, ask whether to merge or replace
+            if (items.length > 0 && remoteData.items && remoteData.items.length > 0) {
+                setPendingSyncRecord({ id: record.id, code, data: remoteData });
+                return;
             }
-            setSyncState({ connected: true, code, recordId: record.id, msg: 'Connected', msgType: 'success' });
-            localStorage.setItem('shopListSyncCode', code);
-            pb.collection('shopping_lists').unsubscribe('*');
-            pb.collection('shopping_lists').subscribe(record.id, (e) => {
-                if (e.action === 'update' && e.record.data) {
-                    syncFromRemote({ items: e.record.data.items || [], categories: e.record.data.categories || undefined });
-                } else if (e.action === 'delete') { disconnectSync(); }
-            });
+
+            // If no conflict, just sync (if remote has data, use it; otherwise keep local)
+            finishConnection(record.id, code, remoteData.items.length > 0 ? remoteData : { items, categories });
         } catch { disconnectSync(); setSyncState({ msg: 'Code not found', msgType: 'error' }); }
+    };
+
+    const handleSyncChoice = (choice: 'merge' | 'replace') => {
+        if (!pendingSyncRecord) return;
+        const { id, code, data } = pendingSyncRecord;
+
+        if (choice === 'replace') {
+            // Replace local with remote
+            finishConnection(id, code, data);
+        } else {
+            // Merge: combine items (avoid duplicates by id)
+            const remoteItems = data.items || [];
+            const localItemIds = new Set(items.map((i: any) => i.id));
+            const mergedItems = [...items, ...remoteItems.filter((i: any) => !localItemIds.has(i.id))];
+            finishConnection(id, code, { items: mergedItems, categories: data.categories || categories });
+        }
+        setPendingSyncRecord(null);
+    };
+
+    const finishConnection = (recordId: string, code: string, data: { items: any[]; categories: any }) => {
+        syncFromRemote({ items: data.items || [], categories: data.categories || undefined });
+        setSyncState({ connected: true, code, recordId, msg: 'Connected', msgType: 'success' });
+        localStorage.setItem('shopListSyncCode', code);
+
+        // Push merged/synced data to remote
+        pb.collection('shopping_lists').update(recordId, { data: { items: data.items, categories: data.categories } }).catch(console.error);
+
+        // Subscribe to updates (but don't overwrite local immediately on update - use a flag)
+        pb.collection('shopping_lists').unsubscribe('*');
+        pb.collection('shopping_lists').subscribe(recordId, (e) => {
+            if (e.action === 'delete') { disconnectSync(); }
+            // Remote updates handled by App.tsx sync logic
+        });
     };
 
     const createSharedList = async () => {
         if (!navigator.onLine) return alert('Offline');
         const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         try {
-            await pb.collection('shopping_lists').create({ list_code: newCode, data: { items, categories } });
-            connectSync(newCode);
+            const record = await pb.collection('shopping_lists').create({ list_code: newCode, data: { items, categories } });
+            finishConnection(record.id, newCode, { items, categories });
         } catch { alert('Error creating list'); }
     };
 
@@ -70,37 +100,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
         localStorage.removeItem('shopListSyncCode');
     };
 
-    // --- Auth Logic ---
-    const handleLogin = async () => {
-        setAuthError('');
-        try {
-            const authData = await pb.collection('users').authWithPassword(emailInput, passwordInput);
-            setAuth({ isLoggedIn: true, email: authData.record.email, userId: authData.record.id });
-            setEmailInput(''); setPasswordInput('');
-        } catch { setAuthError('Login failed'); }
-    };
 
-    const handleRegister = async () => {
-        setAuthError('');
-        if (passwordInput !== passwordConfirmInput) {
-            setAuthError('Passwords do not match');
-            return;
-        }
-        if (passwordInput.length < 8) {
-            setAuthError('Password must be at least 8 characters');
-            return;
-        }
-        try {
-            await pb.collection('users').create({ email: emailInput, password: passwordInput, passwordConfirm: passwordConfirmInput });
-            setAuthError('Check your email to verify your account');
-            setEmailInput(''); setPasswordInput(''); setPasswordConfirmInput('');
-        } catch { setAuthError('Registration failed'); }
-    };
-
-    const handleLogout = () => {
-        pb.authStore.clear();
-        logout();
-    };
 
     // --- Catalog Logic ---
     const handleAddSettingsItem = () => {
@@ -150,7 +150,20 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
             <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
                 <h4 className="text-xs font-bold text-blue-500 uppercase mb-3 tracking-wider flex items-center gap-2"><Server size={12} /> {t.sync}</h4>
                 {sync.msg && <div className={`text-xs mb-2 font-mono ${sync.msgType === 'error' ? 'text-red-500' : sync.msgType === 'success' ? 'text-green-500' : 'text-blue-400'}`}>{sync.msg}</div>}
-                {!sync.connected ? (
+
+                {/* Merge/Replace Dialog */}
+                {pendingSyncRecord && (
+                    <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl">
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3">{t.syncMergeTitle}: {pendingSyncRecord.data.items.length} items</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleSyncChoice('merge')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncMerge}</button>
+                            <button onClick={() => handleSyncChoice('replace')} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncReplace}</button>
+                            <button onClick={() => setPendingSyncRecord(null)} className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold text-xs">{t.cancel}</button>
+                        </div>
+                    </div>
+                )}
+
+                {!sync.connected && !pendingSyncRecord ? (
                     <div>
                         <button onClick={createSharedList} className="w-full mb-3 bg-white dark:bg-darkSurface border border-blue-200 dark:border-blue-700 text-blue-600 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><Plus size={12} /> {t.createList}</button>
                         <div className="flex gap-2">
@@ -158,7 +171,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             <button onClick={() => connectSync(syncInputCode.toUpperCase())} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs">{t.join}</button>
                         </div>
                     </div>
-                ) : (
+                ) : sync.connected ? (
                     <div>
                         <div className="flex items-center justify-between mb-3 bg-white dark:bg-darkSurface p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/30">
                             <span className="text-xs text-slate-400 uppercase font-bold pl-1">Code:</span>
@@ -167,29 +180,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                         </div>
                         <button onClick={disconnectSync} className="w-full text-xs font-bold text-red-500 hover:bg-red-50 py-2 rounded-lg flex items-center justify-center gap-1.5"><LogOut size={12} /> {t.disconnect}</button>
                     </div>
-                )}
-            </div>
-
-            {/* User Auth Section */}
-            <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
-                <h4 className="text-xs font-bold text-purple-500 uppercase mb-3 tracking-wider flex items-center gap-2"><User size={12} /> {t.email}</h4>
-                {authError && <div className="text-xs text-red-500 mb-2">{authError}</div>}
-                {!auth.isLoggedIn ? (
-                    <div className="space-y-2">
-                        <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t.email} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
-                        <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder={t.password} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
-                        <input type="password" value={passwordConfirmInput} onChange={(e) => setPasswordConfirmInput(e.target.value)} placeholder={t.passwordConfirm} className="w-full bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none dark:text-white" />
-                        <div className="flex gap-2 pt-1">
-                            <button onClick={handleLogin} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-xs">{t.login}</button>
-                            <button onClick={handleRegister} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 rounded-lg font-bold text-xs">{t.register}</button>
-                        </div>
-                    </div>
-                ) : (
-                    <div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">{t.loggedAs}: <strong>{auth.email}</strong></p>
-                        <button onClick={handleLogout} className="w-full text-xs font-bold text-red-500 hover:bg-red-50 py-2 rounded-lg flex items-center justify-center gap-1.5"><LogOut size={12} /> Logout</button>
-                    </div>
-                )}
+                ) : null}
             </div>
         </div>
     );
@@ -300,7 +291,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 {/* Tab Bar */}
                 <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setActiveTab('account')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}>
-                        <User size={14} /> {t.tabAccount}
+                        <Server size={14} /> {t.tabAccount}
                     </button>
                     <button onClick={() => setActiveTab('products')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'products' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-sm' : 'text-slate-500'}`}>
                         <Package size={14} /> {t.tabProducts}

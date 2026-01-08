@@ -13,7 +13,7 @@ version: '3.8'
 
 services:
   shoplist:
-    image: borborbor/shoplist:latest
+    image: borborbor/shoplist:main
     container_name: shoplist
     restart: unless-stopped
     ports:
