@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2, Bell } from 'lucide-react';
+import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2, Bell, RefreshCw } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles } from '../../data/constants';
 import { pb } from '../../lib/pocketbase';
@@ -313,8 +313,28 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 </div>
             </div>
 
+            {/* Force Update Section */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button
+                    onClick={() => {
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.getRegistrations().then(registrations => {
+                                for (let registration of registrations) registration.unregister();
+                                window.location.reload();
+                            });
+                        } else {
+                            window.location.reload();
+                        }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-xs transition hover:bg-orange-200 dark:hover:bg-orange-800/50"
+                >
+                    <RefreshCw size={14} /> Forzar Actualización
+                </button>
+                <p className="text-[10px] text-slate-500 mt-2 px-1 text-center">Usa esto si Android no carga la última versión (borra el código antiguo y recarga).</p>
+            </div>
+
             {/* Reset */}
-            <button onClick={() => { if (confirm(t.resetBtn + '?')) { resetDefaults(); onClose(); } }} className="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition flex items-center justify-center gap-2">
+            <button onClick={() => { if (confirm(t.resetBtn + '?')) { resetDefaults(); onClose(); } }} className="w-full text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 p-3 rounded-xl transition mt-4 flex items-center justify-center gap-2">
                 <Trash2 size={12} /> {t.resetBtn}
             </button>
         </div>
