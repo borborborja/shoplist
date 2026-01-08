@@ -194,7 +194,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-1"><History size={10} /> {lang === 'ca' ? 'Historial recent' : 'Historial reciente'}</p>
                                 <div className="flex flex-wrap gap-2">
                                     {sync.syncHistory.map(code => (
-                                        <button key={code} onClick={() => setSyncInputCode(code)} className="px-2 py-1 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 transition">
+                                        <button key={code} onClick={() => { setSyncInputCode(code); connectSync(code); }} className="px-2 py-1 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 transition">
                                             {code}
                                         </button>
                                     ))}
@@ -210,9 +210,17 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             <button onClick={() => navigator.clipboard.writeText(sync.code!)} className="text-slate-400 hover:text-blue-500 p-1"><Copy size={12} /></button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <button onClick={manualSync} className="flex-1 text-xs font-bold text-blue-500 bg-white dark:bg-darkSurface border border-blue-100 dark:border-blue-800/30 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"><RotateCw size={12} /> {lang === 'ca' ? 'Sincronitzar' : 'Sincronizar'}</button>
+                            <button onClick={manualSync} disabled={sync.msg === 'Syncing...'} className="flex-1 text-xs font-bold text-blue-500 bg-white dark:bg-darkSurface border border-blue-100 dark:border-blue-800/30 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-50">
+                                <RotateCw size={12} className={sync.msg === 'Syncing...' ? 'animate-spin' : ''} />
+                                {lang === 'ca' ? 'Sincronitzar' : 'Sincronizar'}
+                            </button>
                             <button onClick={disconnectSync} className="flex-1 text-xs font-bold text-red-500 bg-white dark:bg-darkSurface border border-red-100 dark:border-red-800/20 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><LogOut size={12} /> {t.disconnect}</button>
                         </div>
+                        {sync.lastSync && (
+                            <p className="text-[10px] text-slate-400 text-center mt-3 lowercase italic">
+                                {lang === 'ca' ? 'Darrera sincronització' : 'Última sincronización'}: {new Date(sync.lastSync).toLocaleTimeString()}
+                            </p>
+                        )}
                     </div>
                 ) : null}
             </div>
