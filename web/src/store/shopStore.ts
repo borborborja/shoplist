@@ -22,6 +22,8 @@ interface ShopState {
     viewMode: ViewMode;
     isDark: boolean;
     isAmoled: boolean;
+    notifyOnAdd: boolean;
+    notifyOnCheck: boolean;
 
     // Sync & Auth
     sync: SyncState;
@@ -33,6 +35,8 @@ interface ShopState {
     setViewMode: (mode: ViewMode) => void;
     toggleTheme: () => void;
     toggleAmoled: () => void;
+    setNotifyOnAdd: (val: boolean) => void;
+    setNotifyOnCheck: (val: boolean) => void;
 
     addItem: (name: string, cat?: string) => void;
     toggleCheck: (id: number) => void;
@@ -68,17 +72,24 @@ export const useShopStore = create<ShopState>()(
             viewMode: 'list',
             isDark: false,
             isAmoled: false,
+            notifyOnAdd: true,
+            notifyOnCheck: true,
             sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info' },
             auth: { isLoggedIn: false, email: null, userId: null },
 
             setLang: (lang) => set({ lang }),
             setAppMode: (appMode) => set({ appMode }),
             setViewMode: (viewMode) => set({ viewMode }),
-            toggleTheme: () => set((state) => ({ isDark: !state.isDark })),
+            toggleTheme: () => set((state) => {
+                const newDark = !state.isDark;
+                return { isDark: newDark, isAmoled: newDark ? state.isAmoled : false };
+            }),
             toggleAmoled: () => set((state) => {
                 const newAmoled = !state.isAmoled;
                 return { isAmoled: newAmoled, isDark: newAmoled ? true : state.isDark };
             }),
+            setNotifyOnAdd: (notifyOnAdd) => set({ notifyOnAdd }),
+            setNotifyOnCheck: (notifyOnCheck) => set({ notifyOnCheck }),
 
             addItem: (name, cat = 'other') => set((state) => ({
                 items: [{ id: Date.now(), name, checked: false, note: '', category: cat }, ...state.items]
@@ -147,6 +158,8 @@ export const useShopStore = create<ShopState>()(
                 viewMode: state.viewMode,
                 isDark: state.isDark,
                 isAmoled: state.isAmoled,
+                notifyOnAdd: state.notifyOnAdd,
+                notifyOnCheck: state.notifyOnCheck,
                 // Keep code/recordId for reconnection, but reset connection status
                 sync: {
                     connected: false,

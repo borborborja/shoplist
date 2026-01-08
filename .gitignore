@@ -1,0 +1,18 @@
+# PocketBase
+/pb_data/
+/pocketbase
+
+# Node.js
+**/node_modules/
+/web/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+
+# Go
+bin/

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2 } from 'lucide-react';
+import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2, Bell } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles } from '../../data/constants';
 import { pb } from '../../lib/pocketbase';
@@ -12,7 +12,8 @@ interface SettingsModalProps {
 
 const SettingsModal = ({ onClose }: SettingsModalProps) => {
     const {
-        lang, isAmoled, toggleAmoled,
+        lang, isDark, isAmoled, toggleTheme, toggleAmoled,
+        notifyOnAdd, notifyOnCheck, setNotifyOnAdd, setNotifyOnCheck,
         categories, addCategoryItem, removeCategoryItem, addCategory, removeCategory,
         items, resetDefaults, importData,
         sync, setSyncState, syncFromRemote
@@ -244,15 +245,56 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
     const renderOtherTab = () => (
         <div className="space-y-6 animate-fade-in">
-            {/* AMOLED Toggle */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm"><Moon size={16} /></div>
-                    <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4><p className="text-[10px] text-slate-500">Pure Black</p></div>
+            {/* Theme Toggles */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">{t.settings}</h4>
+
+                {/* Dark Mode */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm shadow-sm"><Moon size={16} /></div>
+                        <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">{t.settings}</h4><p className="text-[10px] text-slate-500">Dark Mode</p></div>
+                    </div>
+                    <button onClick={toggleTheme} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isDark ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isDark ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </button>
                 </div>
-                <button onClick={toggleAmoled} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isAmoled ? 'bg-slate-700' : 'bg-slate-300'}`}>
-                    <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAmoled ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </button>
+
+                {/* AMOLED Toggle */}
+                <div className={`flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 transition-opacity ${!isDark ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm shadow-sm"><Moon size={16} /></div>
+                        <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">AMOLED</h4><p className="text-[10px] text-slate-500">Pure Black</p></div>
+                    </div>
+                    <button onClick={toggleAmoled} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isAmoled ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAmoled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </button>
+                </div>
+
+                {/* Notifications Section */}
+                <h4 className="text-xs font-bold text-slate-400 uppercase mt-4 mb-2 tracking-wider">Avisos</h4>
+
+                {/* Notify on Add */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm shadow-sm"><Bell size={16} /></div>
+                        <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">{t.notifyAdd}</h4></div>
+                    </div>
+                    <button onClick={() => setNotifyOnAdd(!notifyOnAdd)} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnAdd ? 'bg-blue-500' : 'bg-slate-300'}`}>
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${notifyOnAdd ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </button>
+                </div>
+
+                {/* Notify on Check */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm shadow-sm"><Bell size={16} /></div>
+                        <div><h4 className="text-sm font-bold text-slate-800 dark:text-white">{t.notifyCheck}</h4></div>
+                    </div>
+                    <button onClick={() => setNotifyOnCheck(!notifyOnCheck)} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnCheck ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${notifyOnCheck ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </button>
+                </div>
             </div>
 
             {/* Data Backup */}

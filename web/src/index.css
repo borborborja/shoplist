@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer utilities {
   .glass {
     @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-black/5 dark:border-white/5;
@@ -9,28 +11,10 @@
     @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-black/5 dark:border-white/5;
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Amoled Mode Override */
-.amoled .dark .bg-darkBg {
-  background-color: #000000;
-}
-
-.amoled .dark .bg-darkSurface {
-  background-color: #0a0a0a;
-  border-color: #222;
 }
 
 @theme {
@@ -91,4 +75,10 @@
       opacity: 1;
     }
   }
+}
+
+/* Theme overrides */
+.dark.amoled {
+  --color-darkBg: #000000;
+  --color-darkSurface: #0a0a0a;
 }

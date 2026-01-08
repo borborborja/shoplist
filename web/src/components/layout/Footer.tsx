@@ -1,9 +1,25 @@
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Download } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
+import { translations } from '../../data/constants';
 import type { Lang } from '../../types';
 
-const Footer = () => {
+interface FooterProps {
+    installPrompt?: any;
+    onInstall?: () => void;
+}
+
+const Footer = ({ installPrompt, onInstall }: FooterProps) => {
     const { lang, setLang, isDark, toggleTheme } = useShopStore();
+    const t = translations[lang];
+
+    const handleInstallClick = async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+            onInstall?.();
+        }
+    };
 
     return (
         <footer className="fixed bottom-0 w-full glass-footer z-30 pb-safe">
@@ -19,6 +35,12 @@ const Footer = () => {
                             <option value="es">ES</option>
                             <option value="en">EN</option>
                         </select>
+
+                        {installPrompt && (
+                            <button onClick={handleInstallClick} className="flex items-center gap-1.5 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] font-bold transition shadow-sm animate-pop">
+                                <Download size={12} /> {t.installApp}
+                            </button>
+                        )}
                     </div>
                     <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">
                         &copy; ShopList v2
