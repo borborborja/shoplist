@@ -45,5 +45,5 @@ EXPOSE 8090
 # Persistence Volume
 VOLUME /pb_data
 
-# Run PocketBase
-CMD ["/app/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data"]
+# Run PocketBase with migrations
+CMD ["/app/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/app/pb_migrations"]
