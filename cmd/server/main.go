@@ -14,7 +14,7 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
-//go:embed all:../../web/dist
+//go:embed all:web/dist
 var frontendDist embed.FS
 
 func main() {

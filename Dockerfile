@@ -29,8 +29,8 @@ RUN go mod tidy
 
 # Copy Go source
 COPY cmd/ ./cmd/
-# Copy built frontend assets to the expected embed location
-COPY --from=frontend-builder /app/web/dist ./web/dist
+# Copy built frontend assets to the expected embed location (relative to main.go)
+COPY --from=frontend-builder /app/web/dist ./cmd/server/web/dist
 
 # Build static binary
 # -ldflags="-s -w" strips debug info for smaller binary
