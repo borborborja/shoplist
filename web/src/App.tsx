@@ -54,9 +54,14 @@ function App() {
       if (document.visibilityState === 'visible') checkUpdates();
     };
 
+    const handleActivity = () => {
+      checkUpdates();
+    };
+
     window.addEventListener('focus', checkUpdates);
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', checkUpdates);
+    window.addEventListener('touchstart', handleActivity, { passive: true });
 
     const updateInterval = setInterval(checkUpdates, 1000 * 60 * 30); // Every 30 mins
 
@@ -64,6 +69,7 @@ function App() {
       window.removeEventListener('focus', checkUpdates);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', checkUpdates);
+      window.removeEventListener('touchstart', handleActivity);
       clearInterval(updateInterval);
     };
   }, []);
@@ -105,7 +111,7 @@ function App() {
     };
 
     // Debounce sync
-    const timer = setTimeout(syncToRemote, 500);
+    const timer = setTimeout(syncToRemote, 200);
     return () => clearTimeout(timer);
   }, [items, categories]);
 
