@@ -196,20 +196,6 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             <input type="text" value={syncInputCode} onChange={(e) => setSyncInputCode(e.target.value)} placeholder="CODE..." className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs focus:outline-none dark:text-white uppercase tracking-widest font-mono text-center" />
                             <button onClick={() => connectSync(syncInputCode.toUpperCase())} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs">{t.join}</button>
                         </div>
-
-                        {/* History */}
-                        {sync.syncHistory && sync.syncHistory.length > 0 && (
-                            <div className="space-y-1.5">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-1"><History size={10} /> {lang === 'ca' ? 'Historial recent' : 'Historial reciente'}</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {sync.syncHistory.map(code => (
-                                        <button key={code} onClick={() => { setSyncInputCode(code); connectSync(code); }} className="px-2 py-1 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 transition">
-                                            {code}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ) : sync.connected ? (
                     <div>
@@ -232,6 +218,32 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                         )}
                     </div>
                 ) : null}
+
+                {/* History - Always visible if there are codes beyond the current one */}
+                {sync.syncHistory && sync.syncHistory.filter(c => c !== sync.code).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-blue-100 dark:border-blue-800/20">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 flex items-center gap-1">
+                            <History size={10} /> {t.syncHistory}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {sync.syncHistory.filter(c => c !== sync.code).map(code => (
+                                <button
+                                    key={code}
+                                    onClick={() => {
+                                        setSyncInputCode(code);
+                                        connectSync(code);
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group"
+                                >
+                                    <span className="tracking-widest uppercase">{code}</span>
+                                    <span className="text-[9px] font-sans text-blue-500 opacity-0 group-hover:opacity-100 transition uppercase tracking-tighter">
+                                        {t.join}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
