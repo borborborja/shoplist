@@ -9,7 +9,7 @@ import ListView from './components/views/ListView';
 import SettingsModal from './components/modals/SettingsModal';
 
 function App() {
-  const { isDark, isAmoled, appMode, items, categories, notifyOnAdd, notifyOnCheck, sync, lang, syncFromRemote } = useShopStore();
+  const { isDark, isAmoled, appMode, items, categories, notifyOnAdd, notifyOnCheck, sync, lang, syncFromRemote, setSyncState } = useShopStore();
   const [showSettings, setShowSettings] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const lastRemoteStateRef = useRef<string>('');
@@ -37,10 +37,12 @@ function App() {
       // Force a re-fetch of remote data if connected
       const { sync } = useShopStore.getState();
       if (sync.connected && sync.recordId) {
+        setSyncState({ syncVersion: sync.syncVersion + 1 });
         try {
           const record = await pb.collection('shopping_lists').getOne(sync.recordId);
           if (record.data) {
             useShopStore.getState().syncFromRemote(record.data);
+            setSyncState({ lastSync: Date.now() });
           }
         } catch (e) {
           console.error('Failed proactive re-sync:', e);
@@ -147,11 +149,12 @@ function App() {
 
           lastRemoteStateRef.current = remoteStateStr;
           syncFromRemote(remoteData);
+          setSyncState({ lastSync: Date.now() });
         }
       });
     }
     return () => { pb.collection('shopping_lists').unsubscribe('*'); };
-  }, [sync.connected, sync.recordId, notifyOnAdd, notifyOnCheck, syncFromRemote, lang]);
+  }, [sync.connected, sync.recordId, sync.syncVersion, notifyOnAdd, notifyOnCheck, syncFromRemote, lang]);
 
   return (
     <div className={`${isDark ? 'dark' : ''} ${isAmoled ? 'amoled' : ''}`}>

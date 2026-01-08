@@ -10,6 +10,8 @@ interface SyncState {
     msg: string;
     msgType: 'info' | 'success' | 'error';
     syncHistory: string[];
+    lastSync: number | null;
+    syncVersion: number;
 }
 
 interface ShopState {
@@ -76,7 +78,7 @@ export const useShopStore = create<ShopState>()(
             isAmoled: false,
             notifyOnAdd: true,
             notifyOnCheck: true,
-            sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info', syncHistory: [] },
+            sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info', syncHistory: [], lastSync: null, syncVersion: 0 },
             auth: { isLoggedIn: false, email: null, userId: null },
 
             setLang: (lang) => set({ lang }),
@@ -173,7 +175,9 @@ export const useShopStore = create<ShopState>()(
                     recordId: state.sync.recordId,
                     msg: '',
                     msgType: 'info' as const,
-                    syncHistory: state.sync.syncHistory
+                    syncHistory: state.sync.syncHistory,
+                    lastSync: state.sync.lastSync,
+                    syncVersion: 0
                 },
                 auth: state.auth
             })

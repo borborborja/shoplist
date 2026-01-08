@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Moon, Sun, Download } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations } from '../../data/constants';
@@ -9,8 +10,15 @@ interface FooterProps {
 }
 
 const Footer = ({ installPrompt, onInstall }: FooterProps) => {
-    const { lang, setLang, isDark, toggleTheme } = useShopStore();
+    const { lang, setLang, isDark, toggleTheme, sync } = useShopStore();
     const t = translations[lang];
+    const [, setTick] = useState(0);
+
+    // Refresh "Last sync fa Xm" label periodically
+    useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleInstallClick = async () => {
         if (!installPrompt) return;
@@ -42,8 +50,18 @@ const Footer = ({ installPrompt, onInstall }: FooterProps) => {
                             </button>
                         )}
                     </div>
-                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">
-                        &copy; ShopList v2.4 (2026-01-08-1805)
+                    <div className="flex flex-col items-center gap-0.5">
+                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">
+                            &copy; ShopList v2.4.1 (2026-01-08-1805)
+                        </div>
+                        {sync.connected && sync.lastSync && (
+                            <div className="text-[8px] font-medium text-slate-400 dark:text-slate-600 uppercase tracking-tight flex items-center gap-1">
+                                <div className={`w-1 h-1 rounded-full ${Date.now() - sync.lastSync < 60000 ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                                {Date.now() - sync.lastSync < 30000
+                                    ? (lang === 'ca' ? 'En línia' : 'En línea')
+                                    : (lang === 'ca' ? `Sincronitzat fa ${Math.round((Date.now() - sync.lastSync) / 60000)}m` : `Sincronizado fa ${Math.round((Date.now() - sync.lastSync) / 60000)}m`)}
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end">
                         <button onClick={toggleTheme} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-700">
