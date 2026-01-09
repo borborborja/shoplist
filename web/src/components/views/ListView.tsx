@@ -70,7 +70,7 @@ const ListView = () => {
     const handleDelete = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         deleteItem(id);
-        if (navigator.vibrate) navigator.vibrate(10);
+        if (navigator.vibrate) navigator.vibrate(20);
     };
 
     // Sub-components for cleaner rendering
@@ -82,7 +82,7 @@ const ListView = () => {
                 } else {
                     setEditingItem(item);
                 }
-                if (navigator.vibrate) navigator.vibrate(5);
+                if (navigator.vibrate) navigator.vibrate(20);
             }}
             className={`group relative flex items-center rounded-xl transition-all border shadow-sm overflow-hidden cursor-pointer active:scale-[0.99] ${getItemClass()} ${item.checked
                 ? 'bg-slate-50 dark:bg-slate-800/40 border-transparent grayscale'
@@ -91,7 +91,7 @@ const ListView = () => {
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.checked ? 'bg-slate-300 dark:bg-slate-600' : style.bgSolid}`}></div>
             <div className="flex-shrink-0 ml-2 mr-3" onClick={(e) => e.stopPropagation()}>
                 <button
-                    onClick={() => { toggleCheck(item.id); if (navigator.vibrate) navigator.vibrate(5); }}
+                    onClick={() => { toggleCheck(item.id); if (navigator.vibrate) navigator.vibrate(20); }}
                     className={`rounded-full border-2 flex items-center justify-center transition-all ${item.checked
                         ? 'border-slate-400 bg-slate-400 dark:border-slate-600 dark:bg-slate-600 text-white'
                         : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 bg-transparent text-transparent'

@@ -82,7 +82,7 @@ const AddItemInput = () => {
         setVal('');
         setShowSuggestions(false);
         setSelectedIndex(-1);
-        if (navigator.vibrate) navigator.vibrate(10);
+        if (navigator.vibrate) navigator.vibrate(20);
     };
 
     const handleSubmit = () => {
@@ -99,7 +99,7 @@ const AddItemInput = () => {
             addItem(exactMatch.name, exactMatch.category);
             setVal('');
             setShowSuggestions(false);
-            if (navigator.vibrate) navigator.vibrate(10);
+            if (navigator.vibrate) navigator.vibrate(20);
             return;
         }
 
@@ -119,7 +119,7 @@ const AddItemInput = () => {
 
         setVal('');
         setShowCategoryPicker(false);
-        if (navigator.vibrate) navigator.vibrate(10);
+        if (navigator.vibrate) navigator.vibrate(20);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

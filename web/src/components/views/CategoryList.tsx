@@ -32,7 +32,7 @@ const CategoryList = () => {
     const handleAddItem = (item: LocalizedItem) => {
         const name = getLocalizedItemName(item, lang);
         addItem(name, activeCategory!);
-        if (navigator.vibrate) navigator.vibrate(10);
+        if (navigator.vibrate) navigator.vibrate(20);
     };
 
     const handleConfirmQuickAdd = () => {
