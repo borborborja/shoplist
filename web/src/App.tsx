@@ -8,13 +8,35 @@ import ShoppingView from './components/views/ShoppingView';
 import ListView from './components/views/ListView';
 import SettingsModal from './components/modals/SettingsModal';
 
+import AdminLayout from './components/admin/AdminLayout';
+
 function App() {
+  const checkAdmin = () => {
+    // Debug
+    console.log('Checking Admin Route:', window.location.pathname, window.location.hash);
+    return window.location.hash.startsWith('#/admin') || window.location.pathname.startsWith('/admin');
+  };
+
+  const [isAdmin, setIsAdmin] = useState(checkAdmin());
   const { isDark, isAmoled, appMode, items, categories, notifyOnAdd, notifyOnCheck, sync, lang, syncFromRemote, setSyncState } = useShopStore();
   const [showSettings, setShowSettings] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const lastRemoteStateRef = useRef<string>('');
 
   useEffect(() => {
+    const handleRoute = () => setIsAdmin(checkAdmin());
+    window.addEventListener('hashchange', handleRoute);
+    window.addEventListener('popstate', handleRoute);
+    return () => {
+      window.removeEventListener('hashchange', handleRoute);
+      window.removeEventListener('popstate', handleRoute);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    useShopStore.getState().loadCatalog();
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -165,16 +187,22 @@ function App() {
   return (
     <div className={`${isDark ? 'dark' : ''} ${isAmoled ? 'amoled' : ''}`}>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-darkBg dark:via-darkBg dark:to-darkBg transition-colors duration-500">
-        <Header openSettings={() => setShowSettings(true)} />
+        {isAdmin ? (
+          <AdminLayout />
+        ) : (
+          <>
+            <Header openSettings={() => setShowSettings(true)} />
 
-        <main className="pt-20 pb-24 px-4 max-w-lg mx-auto">
-          {appMode === 'planning' ? <PlanningView /> : <ShoppingView />}
-          <ListView />
-        </main>
+            <main className="pt-20 pb-24 px-4 max-w-2xl mx-auto transition-all duration-500">
+              {appMode === 'planning' ? <PlanningView /> : <ShoppingView />}
+              <ListView />
+            </main>
 
-        <Footer installPrompt={deferredPrompt} onInstall={() => setDeferredPrompt(null)} />
+            <Footer installPrompt={deferredPrompt} onInstall={() => setDeferredPrompt(null)} />
 
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+          </>
+        )}
       </div>
     </div>
   );

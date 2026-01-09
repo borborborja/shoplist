@@ -26,23 +26,38 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-**Access the app:** http://localhost:8090  
-**Admin Panel:** http://localhost:8090/_/
+**App Public:** [http://localhost:8090](http://localhost:8090)  
+**App Admin:** [http://localhost:8090/admin](http://localhost:8090/admin) (Requires Admin Login)  
+**System Admin (PocketBase):** [http://localhost:8090/_/](http://localhost:8090/_/)
 
 ---
 
-## 📦 Docker Hub
+## 👑 Admin Panel
 
-Pre-built images are available on Docker Hub:
+The application includes a custom administration dashboard at `/admin` to manage the catalog and application state.
 
-```bash
-docker pull YOUR_USERNAME/llista_compra:latest
-docker run -d -p 8090:8090 -v shoplist_data:/pb_data YOUR_USERNAME/llista_compra:latest
-```
+### Tabs & Features
+- **📊 Listas**: Monitor all active shopping lists. Support for bulk selection and mass deletion.
+- **📦 Categorías**: Manage the catalog structure.
+    - Customize icon (emoji) and color.
+    - Localize names (Catalan, Spanish, English).
+    - **Bulk Actions**: Select multiple categories to Hide, Show, or Delete.
+    - **Visibility Dependency**: Hiding a category automatically hides all its products from the catalog.
+- **🛒 Productos**: Manage individual items.
+    - Search by name and filter by category.
+    - **Bulk Actions**: Hide/Show/Delete multiple products.
+    - **Smart Locking**: Products belonging to a hidden category are forced-hidden and cannot be unhidden individually.
+- **👥 Usuarios**: Manage administrator accounts.
+- **⚙️ Configuración**: Global application settings.
+    - **Server Name**: Set a custom name for your instance (displayed in the header).
 
 ---
 
 ## ⚙️ Configuration
+
+### App Settings (via Admin UI)
+You can change these via the `/admin` settings tab:
+- **Server Name**: The name displayed in the top header for all users.
 
 ### Environment Variables
 

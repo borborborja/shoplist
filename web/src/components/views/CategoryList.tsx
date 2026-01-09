@@ -46,27 +46,25 @@ const CategoryList = () => {
                 <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t.quickAdd}</h3>
             </div>
 
-            {/* Scrollable List */}
-            <div className="mask-fade-edges -mx-4 px-4">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                    {Object.entries(categories).map(([key, cat]) => {
-                        const style = categoryStyles[key] || categoryStyles['other'];
-                        const isActive = activeCategory === key;
-                        return (
-                            <button
-                                key={key}
-                                onClick={() => toggleCategory(key)}
-                                className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border shadow-sm outline-none ${isActive
-                                    ? style.active
-                                    : 'bg-white dark:bg-darkSurface text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'
-                                    }`}
-                            >
-                                <span className="text-lg leading-none">{cat.icon}</span>
-                                <span>{t.cats[key as keyof typeof t.cats] || key}</span>
-                            </button>
-                        );
-                    })}
-                </div>
+            {/* Categorías */}
+            <div className="flex flex-wrap gap-2 pb-2">
+                {Object.entries(categories).map(([key, cat]) => {
+                    const style = categoryStyles[cat.color || key] || categoryStyles['other'];
+                    const isActive = activeCategory === key;
+                    return (
+                        <button
+                            key={key}
+                            onClick={() => toggleCategory(key)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border shadow-sm outline-none ${isActive
+                                ? style.active
+                                : 'bg-white dark:bg-darkSurface text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'
+                                }`}
+                        >
+                            <span className="text-lg leading-none">{cat.icon}</span>
+                            <span>{t.cats[key as keyof typeof t.cats] || key}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Expansion Panel */}
@@ -76,7 +74,7 @@ const CategoryList = () => {
                         <div className="flex items-center gap-2.5">
                             <span className="text-xl filter drop-shadow-sm">{categories[activeCategory].icon}</span>
                             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                {t.cats[activeCategory as keyof typeof t.cats]}
+                                {t.cats[activeCategory as keyof typeof t.cats] || categories[activeCategory].items[0]?.es || activeCategory}
                             </span>
                         </div>
                         <div className="flex gap-1">
@@ -97,7 +95,8 @@ const CategoryList = () => {
 
                     <div className="p-4 flex flex-wrap gap-2">
                         {categories[activeCategory].items.map((item, idx) => {
-                            const style = categoryStyles[activeCategory] || categoryStyles['other'];
+                            const params = categories[activeCategory];
+                            const style = categoryStyles[params.color || activeCategory] || categoryStyles['other'];
                             return (
                                 <div key={idx} className="relative group">
                                     <button

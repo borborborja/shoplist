@@ -12,13 +12,13 @@ const Header = ({ openSettings }: HeaderProps) => {
 
     return (
         <header className="fixed top-0 w-full z-40 glass transition-all duration-300 h-16">
-            <div className="max-w-3xl mx-auto px-4 h-full flex items-center justify-between">
+            <div className="max-w-2xl mx-auto px-4 h-full flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 overflow-hidden p-1.5">
+                    <div className="w-9 h-9 flex items-center justify-center overflow-hidden p-1.5">
                         <img src="/pwa-512x512.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                     </div>
                     <h1 className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 hidden sm:block">
-                        {t.appTitle}
+                        {useShopStore.getState().serverName}
                     </h1>
                 </div>
 

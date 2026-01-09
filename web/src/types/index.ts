@@ -8,6 +8,7 @@ export interface LocalizedItem {
 export interface CategoryItem {
     icon: string;
     items: LocalizedItem[];
+    color?: string;
 }
 
 export interface Categories {

@@ -11,6 +11,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
@@ -19,18 +20,25 @@ var frontendDist embed.FS
 
 func main() {
 	// Extract the inner dist content
-	distFS, err := fs.Sub(frontendDist, "dist")
+	// Try "web/dist" first as it is the standard structure
+	distFS, err := fs.Sub(frontendDist, "web/dist")
 	if err != nil {
-		distFS, _ = fs.Sub(frontendDist, "web/dist")
-	}
-	if distFS == nil {
-		distFS = frontendDist
+		// Fallback to "dist" 
+		distFS, _ = fs.Sub(frontendDist, "dist")
 	}
 
 	app := pocketbase.New()
 
 	// -------------------------------------------------------------------------
-	// 1. Register Migrations
+	// 1. Register JSVM (for JS Migrations & Hooks)
+	// -------------------------------------------------------------------------
+	jsvm.MustRegister(app, jsvm.Config{
+		// Default: pb_hooks
+		// Migrations are autoloaded from pb_migrations if present
+	})
+
+	// -------------------------------------------------------------------------
+	// 2. Register Migrations (Go)
 	// -------------------------------------------------------------------------
 	isGoRun := strings.HasPrefix(os.Args[0], "/tmp/go-build")
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
@@ -71,26 +79,7 @@ func main() {
 	})
 
 	// -------------------------------------------------------------------------
-	// 3. Enable Email Verification on Users Collection
-	// -------------------------------------------------------------------------
-	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
-		usersCollection, err := app.Dao().FindCollectionByNameOrId("users")
-		if err != nil {
-			log.Println("Users collection not found, skipping email verification setup")
-			return nil
-		}
-
-		// Check if already enabled to avoid unnecessary updates
-		if usersCollection.VerificationTemplate.Subject == "" {
-			log.Println("Enabling email verification for users collection")
-			// The verification is controlled by the Options field for auth collections
-		}
-
-		return nil
-	})
-
-	// -------------------------------------------------------------------------
-	// 4. Custom Business Logic (Hooks)
+	// 3. Custom Business Logic (Hooks)
 	// -------------------------------------------------------------------------
 	app.OnRecordBeforeCreateRequest("shopping_lists").Add(func(e *core.RecordCreateEvent) error {
 		log.Println("Creating new shopping list:", e.Record.Id)

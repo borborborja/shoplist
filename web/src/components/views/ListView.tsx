@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Trash2, X, List, LayoutGrid, AlignJustify, StickyNote, ShoppingBasket } from 'lucide-react';
+import { Check, Trash2, X, List, LayoutGrid, AlignJustify, StickyNote, ShoppingBasket, Pen } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles, defaultCategories } from '../../data/constants';
 import type { ShopItem } from '../../types';
@@ -108,7 +108,7 @@ const ListView = () => {
                             {groupItems.map(item => (
                                 <div
                                     key={item.id}
-                                    onClick={() => setEditingItem(item)}
+                                    onClick={() => { toggleCheck(item.id); if (navigator.vibrate) navigator.vibrate(5); }}
                                     className={`group relative flex items-center bg-white dark:bg-darkSurface rounded-xl transition-all border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-md overflow-hidden cursor-pointer active:scale-[0.99] ${getItemClass()}`}
                                 >
                                     {/* Accent */}
@@ -136,6 +136,14 @@ const ListView = () => {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Edit */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setEditingItem(item); }}
+                                        className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition z-10 opacity-0 group-hover:opacity-100 mr-1"
+                                    >
+                                        <Pen size={14} />
+                                    </button>
 
                                     {/* Delete */}
                                     <button

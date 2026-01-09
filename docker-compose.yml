@@ -20,5 +20,19 @@ services:
       - SMTP_SENDER_NAME=${SMTP_SENDER_NAME:-ShopList}
       - SMTP_SENDER_ADDRESS=${SMTP_SENDER_ADDRESS:-noreply@example.com}
 
+  bring-connector:
+    build: ./extensions/bring-connector
+    container_name: shoplist_bring
+    restart: unless-stopped
+    depends_on:
+      - shoplist
+    environment:
+      - PB_URL=http://shoplist:8090
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL:-}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD:-}
+      - BRING_EMAIL=${BRING_EMAIL:-}
+      - BRING_PASSWORD=${BRING_PASSWORD:-}
+      - BRING_LIST_UUID=${BRING_LIST_UUID:-}
+
 volumes:
   pb_data:

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ShopItem, Categories, Lang, AppMode, ViewMode, LocalizedItem, AuthState } from '../types';
 import { defaultCategories } from '../data/constants';
+import { pb } from '../lib/pocketbase';
 
 interface SyncState {
     connected: boolean;
@@ -27,6 +28,7 @@ interface ShopState {
     isAmoled: boolean;
     notifyOnAdd: boolean;
     notifyOnCheck: boolean;
+    serverName: string;
 
     // Sync & Auth
     sync: SyncState;
@@ -34,6 +36,7 @@ interface ShopState {
 
     // Actions
     setLang: (lang: Lang) => void;
+    setServerName: (name: string) => void;
     setAppMode: (mode: AppMode) => void;
     setViewMode: (mode: ViewMode) => void;
     toggleTheme: () => void;
@@ -60,6 +63,7 @@ interface ShopState {
     resetDefaults: () => void;
     importData: (items: ShopItem[], categories: Categories) => void;
     addToSyncHistory: (code: string) => void;
+    loadCatalog: () => Promise<void>;
 
     // Auth Actions
     setAuth: (auth: Partial<AuthState>) => void;
@@ -78,10 +82,12 @@ export const useShopStore = create<ShopState>()(
             isAmoled: false,
             notifyOnAdd: true,
             notifyOnCheck: true,
+            serverName: 'ShopList',
             sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info', syncHistory: [], lastSync: null, syncVersion: 0 },
             auth: { isLoggedIn: false, email: null, userId: null },
 
             setLang: (lang) => set({ lang }),
+            setServerName: (serverName) => set({ serverName }),
             setAppMode: (appMode) => set({ appMode }),
             setViewMode: (viewMode) => set({ viewMode }),
             toggleTheme: () => set((state) => {
@@ -154,7 +160,53 @@ export const useShopStore = create<ShopState>()(
             addToSyncHistory: (code: string) => set((state) => {
                 const history = [code, ...state.sync.syncHistory.filter(c => c !== code)].slice(0, 3);
                 return { sync: { ...state.sync, syncHistory: history } };
-            })
+            }),
+
+            loadCatalog: async () => {
+                try {
+                    const cats = await pb.collection('catalog_categories').getFullList({ sort: 'order', filter: 'hidden = false' });
+                    const items = await pb.collection('catalog_items').getFullList({ expand: 'category', filter: 'hidden = false' });
+
+                    if (cats.length === 0) return; // Keep defaults if DB empty or all hidden
+
+                    const newCats: Categories = {};
+                    cats.forEach((c: any) => {
+                        newCats[c.key] = {
+                            icon: c.icon,
+                            items: [],
+                            color: c.color
+                        };
+                    });
+
+                    items.forEach((i: any) => {
+                        const catKey = i.expand?.category?.key;
+                        const catHidden = i.expand?.category?.hidden;
+
+                        // Only add if category is also not hidden (extra safety)
+                        if (catKey && newCats[catKey] && !catHidden) {
+                            newCats[catKey].items.push({
+                                es: i.name_es || '',
+                                ca: i.name_ca || i.name_es || '',
+                                en: i.name_en || i.name_es || ''
+                            });
+                        }
+                    });
+
+                    set({ categories: newCats });
+
+                    // Load server config
+                    try {
+                        const config = await pb.collection('admin_config').getFullList({ filter: 'key="server_name"' });
+                        if (config[0]) {
+                            set({ serverName: config[0].value });
+                        }
+                    } catch (e) {
+                        console.error("Failed to load server name", e);
+                    }
+                } catch (e) {
+                    console.error("Failed to load catalog", e);
+                }
+            }
         }),
         {
             name: 'shoplist-storage',
@@ -168,6 +220,7 @@ export const useShopStore = create<ShopState>()(
                 isAmoled: state.isAmoled,
                 notifyOnAdd: state.notifyOnAdd,
                 notifyOnCheck: state.notifyOnCheck,
+                serverName: state.serverName,
                 // Keep code/recordId for reconnection, but reset connection status
                 sync: {
                     connected: false,
