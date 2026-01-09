@@ -93,7 +93,7 @@ function App() {
           <>
             <Header openSettings={() => setShowSettings(true)} />
 
-            <main className="pt-20 pb-8 px-4 max-w-2xl mx-auto transition-all duration-500">
+            <main className="pt-[calc(5rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))] px-4 max-w-2xl mx-auto transition-all duration-500">
               {appMode === 'planning' ? <PlanningView /> : <ShoppingView />}
               <ListView />
             </main>

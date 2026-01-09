@@ -12,8 +12,8 @@ const Header = ({ openSettings }: HeaderProps) => {
     const t = translations[lang];
 
     return (
-        <header className="fixed top-0 w-full z-40 glass transition-all duration-300 h-16">
-            <div className="max-w-2xl mx-auto px-4 h-full flex items-center justify-between">
+        <header className="fixed top-0 w-full z-40 glass transition-all duration-300 pt-[env(safe-area-inset-top)]">
+            <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-xl">
                         <img src="/icon.png" alt="Logo" className="w-full h-full object-cover rounded-xl" />
