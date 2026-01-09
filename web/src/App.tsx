@@ -45,14 +45,14 @@ function App() {
       setDeferredPrompt(e);
     });
 
-    if (Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
     // Proactive SW update check & Sync check
     const checkUpdates = async () => {
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
+      if ('serviceWorker' in navigator && typeof (navigator.serviceWorker as any).getRegistration === 'function') {
+        const registration = await (navigator.serviceWorker as any).getRegistration();
         if (registration) registration.update();
       }
 
