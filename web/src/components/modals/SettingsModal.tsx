@@ -208,8 +208,8 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     // --- Tab Render ---
     const renderAccountTab = () => (
         <div className="space-y-6 animate-fade-in">
-            {useShopStore.getState().enableUsernames && (
-                <div className={`bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 ${!sync.connected ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            {sync.connected && useShopStore.getState().enableUsernames && (
+                <div className={`bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-slide-up`}>
                     <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider flex items-center gap-2">
                         <Settings2 size={12} /> {t.username}
                     </h4>
@@ -619,8 +619,8 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
     const renderAboutTab = () => (
         <div className="space-y-8 py-4 animate-fade-in flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-3xl p-1 flex items-center justify-center shadow-2xl animate-pop">
-                <img src="/pwa-512x512.png" alt="Logo" className="w-full h-full object-contain rounded-2xl" />
+            <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-3xl p-1 flex items-center justify-center shadow-xl animate-pop">
+                <img src="/pwa-192x192.png" alt="Logo" className="w-full h-full object-contain rounded-2xl" />
             </div>
 
             <div className="space-y-1">
