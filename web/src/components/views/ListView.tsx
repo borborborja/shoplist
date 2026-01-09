@@ -141,6 +141,14 @@ const ListView = () => {
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
                     <span>{t.completed}</span>
                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{completedItems.length}</span>
+                    {completedItems.length > 0 && (
+                        <button
+                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); if (navigator.vibrate) navigator.vibrate(20); } }}
+                            className="ml-2 text-[10px] font-bold text-red-400 hover:text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-md transition uppercase tracking-wider hover:bg-red-100"
+                        >
+                            {t.clearComp}
+                        </button>
+                    )}
                 </h3>
                 <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}>
                     {completedItems.map(item => {
@@ -221,9 +229,9 @@ const ListView = () => {
                         )}
                     </div>
 
-                    {completedItems.length > 0 && (
+                    {completedItems.length > 0 && showCompletedInline && (
                         <button
-                            onClick={() => { if (confirm(t.clearComp + '?')) clearCompleted(); }}
+                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); if (navigator.vibrate) navigator.vibrate(20); } }}
                             className="text-[10px] font-bold text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 px-3 py-1.5 rounded-lg transition uppercase tracking-wider bg-white dark:bg-slate-800 border border-transparent hover:border-red-100"
                         >
                             {t.clearComp}

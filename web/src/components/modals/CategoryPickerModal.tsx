@@ -26,10 +26,9 @@ const CategoryPickerModal = ({ productName, onClose, onConfirm }: CategoryPicker
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:items-center items-end">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-safe">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-            <div className="relative w-full sm:w-[28rem] bg-white dark:bg-darkSurface rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 pb-safe flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-slide-up m-0 sm:m-4 ring-1 ring-white/10 z-50 overflow-hidden">
-                <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4 sm:hidden flex-shrink-0"></div>
+            <div className="relative w-full max-w-sm bg-white dark:bg-darkSurface rounded-2xl shadow-2xl p-6 flex flex-col max-h-[85vh] animate-pop ring-1 ring-white/10 z-50 overflow-hidden">
 
                 {/* Header */}
                 <div className="flex justify-between items-start mb-4">

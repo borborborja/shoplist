@@ -116,7 +116,17 @@ export function useListSync() {
                     const remoteData = e.record.data;
                     const remoteStateStr = JSON.stringify({ items: remoteData.items, categories: remoteData.categories });
 
+
                     if (remoteStateStr === lastRemoteStateRef.current) return;
+
+                    // Optimistic UI Protection:
+                    // If the user interacted locally in the last 500ms, ignore this remote update.
+                    // This prevents the "revert" flicker when the server echoes back an old state
+                    // right after we made a change but before our change propagatedfully.
+                    const { lastLocalInteraction } = useShopStore.getState();
+                    if (Date.now() - lastLocalInteraction < 500) {
+                        return; // Ignore this update, our local state is newer
+                    }
 
                     const remoteItems = remoteData.items || [];
                     const localItems = useShopStore.getState().items;

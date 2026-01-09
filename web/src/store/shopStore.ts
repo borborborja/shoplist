@@ -13,6 +13,7 @@ interface SyncState {
     syncHistory: string[];
     lastSync: number | null;
     syncVersion: number;
+    lastLocalInteraction: number;
 }
 
 interface ShopState {
@@ -96,7 +97,7 @@ export const useShopStore = create<ShopState>()(
             notifyOnCheck: true,
             serverName: 'ShopList',
             activeUsers: [],
-            sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info', syncHistory: [], lastSync: null, syncVersion: 0 },
+            sync: { connected: false, code: null, recordId: null, msg: '', msgType: 'info', syncHistory: [], lastSync: null, syncVersion: 0, lastLocalInteraction: 0 },
             auth: { isLoggedIn: false, email: null, userId: null, username: null },
             enableUsernames: false,
             sortOrder: 'category',
@@ -139,19 +140,24 @@ export const useShopStore = create<ShopState>()(
             setShowCompletedInline: (showCompletedInline) => set({ showCompletedInline }),
 
             addItem: (name, cat = 'other') => set((state) => ({
-                items: [{ id: Date.now(), name, checked: false, note: '', category: cat }, ...state.items]
+                items: [{ id: Date.now(), name, checked: false, note: '', category: cat }, ...state.items],
+                sync: { ...state.sync, lastLocalInteraction: Date.now() }
             })),
             toggleCheck: (id) => set((state) => ({
-                items: state.items.map(i => i.id === id ? { ...i, checked: !i.checked } : i)
+                items: state.items.map(i => i.id === id ? { ...i, checked: !i.checked } : i),
+                sync: { ...state.sync, lastLocalInteraction: Date.now() }
             })),
             deleteItem: (id) => set((state) => ({
-                items: state.items.filter(i => i.id !== id)
+                items: state.items.filter(i => i.id !== id),
+                sync: { ...state.sync, lastLocalInteraction: Date.now() }
             })),
             updateItemNote: (id, note) => set((state) => ({
-                items: state.items.map(i => i.id === id ? { ...i, note } : i)
+                items: state.items.map(i => i.id === id ? { ...i, note } : i),
+                sync: { ...state.sync, lastLocalInteraction: Date.now() }
             })),
             clearCompleted: () => set((state) => ({
-                items: state.items.filter(i => !i.checked)
+                items: state.items.filter(i => !i.checked),
+                sync: { ...state.sync, lastLocalInteraction: Date.now() }
             })),
 
             addCategoryItem: (catKey, item) => set((state) => {
@@ -277,7 +283,8 @@ export const useShopStore = create<ShopState>()(
                     msgType: 'info' as const,
                     syncHistory: state.sync.syncHistory,
                     lastSync: state.sync.lastSync,
-                    syncVersion: 0
+                    syncVersion: 0,
+                    lastLocalInteraction: 0
                 },
                 auth: state.auth
             })
