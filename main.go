@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -87,9 +88,39 @@ func main() {
 	})
 
 	// -------------------------------------------------------------------------
-	// 4. Serve Frontend (SPA Fallback)
+	// 4. Serve Frontend (SPA Fallback) & CORS for Mobile
 	// -------------------------------------------------------------------------
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		// 1. CORS Middleware for Mobile Apps
+		e.Router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				origin := c.Request().Header.Get("Origin")
+
+				// Only process if it's a mobile app origin
+				if origin == "capacitor://localhost" || origin == "http://localhost" {
+					// Check if remote access is enabled in the database
+					var isRemoteEnabled bool
+					record, err := app.Dao().FindFirstRecordByFilter("admin_config", "key = 'enable_remote_access'")
+					if err == nil && record.GetString("value") == "true" {
+						isRemoteEnabled = true
+					}
+
+					if isRemoteEnabled {
+						c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+						c.Response().Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+						c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+						c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+
+						if c.Request().Method == "OPTIONS" {
+							return c.NoContent(204)
+						}
+					}
+				}
+				return next(c)
+			}
+		})
+
+		// 2. Static Frontend Files
 		e.Router.GET("/*", apis.StaticDirectoryHandler(distFS, true))
 		return nil
 	})

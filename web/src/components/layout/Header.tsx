@@ -1,6 +1,7 @@
 import { Settings } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations } from '../../data/constants';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface HeaderProps {
     openSettings: () => void;
@@ -25,7 +26,7 @@ const Header = ({ openSettings }: HeaderProps) => {
                 <div className="flex items-center gap-3">
                     <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center shadow-inner border border-slate-200/50 dark:border-slate-700/50 mr-2 relative">
                         <button
-                            onClick={() => { setAppMode('planning'); if (navigator.vibrate) navigator.vibrate(10); }}
+                            onClick={() => { setAppMode('planning'); triggerHaptic(10); }}
                             className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 ${appMode === 'planning'
                                 ? 'bg-white dark:bg-darkSurface text-blue-600 dark:text-blue-400 shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400'
@@ -34,7 +35,7 @@ const Header = ({ openSettings }: HeaderProps) => {
                             {t.modePlan}
                         </button>
                         <button
-                            onClick={() => { setAppMode('shopping'); if (navigator.vibrate) navigator.vibrate(10); }}
+                            onClick={() => { setAppMode('shopping'); triggerHaptic(10); }}
                             className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 ${appMode === 'shopping'
                                 ? 'bg-white dark:bg-darkSurface text-emerald-600 dark:text-emerald-400 shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400'

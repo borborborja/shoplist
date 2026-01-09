@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useShopStore } from '../store/shopStore';
 import { pb } from '../lib/pocketbase';
+import { triggerHaptic } from '../utils/haptics';
 
 export function useListSync() {
     const {
@@ -205,7 +206,7 @@ function handleNotifications(localItems: any[], remoteItems: any[], notifyOnAdd:
         } as any);
 
         if ('vibrate' in navigator) {
-            navigator.vibrate([100, 50, 100]);
+            triggerHaptic(100);
         }
     }
 }

@@ -6,6 +6,7 @@ import { getLocalizedItemName } from '../../utils/helpers';
 import type { LocalizedItem } from '../../types';
 import AddCategoryModal from '../modals/AddCategoryModal';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { triggerHaptic } from '../../utils/haptics';
 
 const CategoryList = () => {
     const { categories, addItem, lang, addCategoryItem, removeCategoryItem } = useShopStore();
@@ -32,7 +33,7 @@ const CategoryList = () => {
     const handleAddItem = (item: LocalizedItem) => {
         const name = getLocalizedItemName(item, lang);
         addItem(name, activeCategory!);
-        if (navigator.vibrate) navigator.vibrate(20);
+        triggerHaptic(20);
     };
 
     const handleConfirmQuickAdd = () => {

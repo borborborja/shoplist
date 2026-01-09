@@ -4,6 +4,7 @@ import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles, defaultCategories } from '../../data/constants';
 import type { ShopItem } from '../../types';
 import ProductModal from '../modals/ProductModal';
+import { triggerHaptic } from '../../utils/haptics';
 
 const ListView = () => {
     const { items, categories, lang, viewMode, appMode, setViewMode, toggleCheck, deleteItem, clearCompleted, sync, activeUsers, sortOrder, setSortOrder, showCompletedInline, setShowCompletedInline } = useShopStore();
@@ -58,7 +59,7 @@ const ListView = () => {
         }
 
         setViewMode(modes[nextIdx]);
-        if (navigator.vibrate) navigator.vibrate(10);
+        triggerHaptic(10);
     };
 
     const getItemClass = () => {
@@ -71,7 +72,7 @@ const ListView = () => {
     const handleDelete = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         deleteItem(id);
-        if (navigator.vibrate) navigator.vibrate(20);
+        triggerHaptic(20);
     };
 
     // Sub-component moved outside to use hooks correctly
@@ -102,7 +103,7 @@ const ListView = () => {
             timerRef.current = setTimeout(() => {
                 isLongPressActive.current = true;
                 setEditingItem(item);
-                if (navigator.vibrate) navigator.vibrate(50);
+                triggerHaptic(50);
             }, 700); // 700ms feels snappier than 1s for mobile
         };
 
@@ -119,7 +120,7 @@ const ListView = () => {
                 return;
             }
             toggleCheck(item.id);
-            if (navigator.vibrate) navigator.vibrate(20);
+            triggerHaptic(20);
         };
 
         return (
@@ -140,7 +141,7 @@ const ListView = () => {
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.checked ? 'bg-slate-300 dark:bg-slate-600' : style.bgSolid}`}></div>
                 <div className="flex-shrink-0 ml-2 mr-3" onClick={(e) => e.stopPropagation()}>
                     <button
-                        onClick={() => { toggleCheck(item.id); if (navigator.vibrate) navigator.vibrate(20); }}
+                        onClick={() => { toggleCheck(item.id); triggerHaptic(20); }}
                         className={`rounded-full border-2 flex items-center justify-center transition-all ${item.checked
                             ? 'border-slate-400 bg-slate-400 dark:border-slate-600 dark:bg-slate-600 text-white'
                             : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 bg-transparent text-transparent'
@@ -192,7 +193,7 @@ const ListView = () => {
                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{completedItems.length}</span>
                     {completedItems.length > 0 && (
                         <button
-                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); if (navigator.vibrate) navigator.vibrate(20); } }}
+                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); triggerHaptic(20); } }}
                             className="ml-2 text-[10px] font-bold text-red-400 hover:text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-md transition uppercase tracking-wider hover:bg-red-100"
                         >
                             {t.clearComp}
@@ -241,7 +242,7 @@ const ListView = () => {
                     {/* View Options Menu Trigger */}
                     <div ref={optionsRef}>
                         <button
-                            onClick={() => { setShowOptions(!showOptions); if (navigator.vibrate) navigator.vibrate(10); }}
+                            onClick={() => { setShowOptions(!showOptions); triggerHaptic(10); }}
                             className={`flex items-center justify-center w-9 h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 ${showOptions ? 'ring-2 ring-blue-500/20 text-blue-500' : 'text-slate-500'}`}
                             title={t.viewOptions}
                         >
@@ -257,7 +258,7 @@ const ListView = () => {
 
                                 {/* Sort Mode */}
                                 <button
-                                    onClick={() => { setSortOrder(sortOrder === 'category' ? 'alpha' : 'category'); setShowOptions(false); if (navigator.vibrate) navigator.vibrate(10); }}
+                                    onClick={() => { setSortOrder(sortOrder === 'category' ? 'alpha' : 'category'); setShowOptions(false); triggerHaptic(10); }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition group"
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${sortOrder === 'alpha' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
@@ -272,7 +273,7 @@ const ListView = () => {
 
                                 {/* Inline Completed */}
                                 <button
-                                    onClick={() => { setShowCompletedInline(!showCompletedInline); setShowOptions(false); if (navigator.vibrate) navigator.vibrate(10); }}
+                                    onClick={() => { setShowCompletedInline(!showCompletedInline); setShowOptions(false); triggerHaptic(10); }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition group"
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showCompletedInline ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
@@ -290,7 +291,7 @@ const ListView = () => {
 
                     {completedItems.length > 0 && showCompletedInline && (
                         <button
-                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); if (navigator.vibrate) navigator.vibrate(20); } }}
+                            onClick={() => { if (confirm(t.clearComp + '?')) { clearCompleted(); triggerHaptic(20); } }}
                             className="text-[10px] font-bold text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 px-3 py-1.5 rounded-lg transition uppercase tracking-wider bg-white dark:bg-slate-800 border border-transparent hover:border-red-100"
                         >
                             {t.clearComp}
