@@ -3,6 +3,7 @@ import type { ShopItem } from '../../types';
 import { translations, categoryStyles } from '../../data/constants';
 import { useShopStore } from '../../store/shopStore';
 import { useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 interface ProductModalProps {
     item: ShopItem;
@@ -12,6 +13,7 @@ interface ProductModalProps {
 const ProductModal = ({ item: initialItem, onClose }: ProductModalProps) => {
     const { lang, updateItemNote } = useShopStore();
     const t = translations[lang];
+    useScrollLock(true);
     const [note, setNote] = useState(initialItem.note || '');
 
     // We use the ID to look up the latest state if needed, but for note editing local state is fine until save.

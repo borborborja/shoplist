@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { pb } from '../../lib/pocketbase';
 import { Trash2, Plus, Save, X, Edit, Loader, EyeOff, Eye } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
+import { EMOJI_LIST } from '../../data/constants';
 
 interface CatalogCategory {
     id: string;
@@ -262,12 +263,25 @@ const CategoryForm = ({ data, onChange, onSave, onCancel }: { data: any, onChang
                 </div>
                 <div className="space-y-1">
                     <label className="text-xs font-black uppercase text-slate-400">Icono (Emoji)</label>
-                    <input
-                        placeholder="Ej: 🍎"
-                        value={data.icon || ''}
-                        onChange={e => handleChange('icon', e.target.value)}
-                        className="input-admin w-full"
-                    />
+                    <div className="flex gap-2">
+                        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-xl text-2xl border border-slate-200 dark:border-slate-600">
+                            {data.icon || '📦'}
+                        </div>
+                        <div className="flex-grow p-2 bg-slate-50 dark:bg-slate-900 shadow-inner rounded-xl border border-slate-200 dark:border-slate-700 max-h-32 overflow-y-auto custom-scrollbar">
+                            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1">
+                                {EMOJI_LIST.map(e => (
+                                    <button
+                                        key={e}
+                                        type="button"
+                                        onClick={() => handleChange('icon', e)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-700 transition-colors ${data.icon === e ? 'bg-white dark:bg-slate-700 ring-2 ring-blue-500/50 shadow-sm' : ''}`}
+                                    >
+                                        {e}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div className="space-y-1">
                     <label className="text-xs font-black uppercase text-slate-400">Color Tailwind (bg-*)</label>

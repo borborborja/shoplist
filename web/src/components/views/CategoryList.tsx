@@ -5,6 +5,7 @@ import { categoryStyles, translations } from '../../data/constants';
 import { getLocalizedItemName } from '../../utils/helpers';
 import type { LocalizedItem } from '../../types';
 import AddCategoryModal from '../modals/AddCategoryModal';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const CategoryList = () => {
     const { categories, addItem, lang, addCategoryItem, removeCategoryItem } = useShopStore();
@@ -15,6 +16,8 @@ const CategoryList = () => {
     const [quickAddValue, setQuickAddValue] = useState('');
 
     const t = translations[lang];
+
+    useScrollLock(showQuickAddModal);
 
     const toggleCategory = (key: string) => {
         if (activeCategory === key) {

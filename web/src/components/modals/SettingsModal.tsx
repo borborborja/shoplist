@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2, Bell, RefreshCw, History, RotateCw, Send, MessageCircle, Database, Check, Sun, AlertCircle } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
-import { translations, categoryStyles } from '../../data/constants';
+import { translations, categoryStyles, EMOJI_LIST } from '../../data/constants';
 import { pb } from '../../lib/pocketbase';
 import { getLocalizedItemName } from '../../utils/helpers';
 import type { LocalizedItem, SettingsTab } from '../../types';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -21,6 +22,8 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     } = useShopStore();
     const t = translations[lang];
 
+    useScrollLock(true);
+
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
     const [settingsActiveCat, setSettingsActiveCat] = useState<string>('fruit');
     const [settingsNewItemVal, setSettingsNewItemVal] = useState('');
@@ -35,7 +38,6 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     const [newCatKey, setNewCatKey] = useState('');
     const [newCatIcon, setNewCatIcon] = useState('📦');
 
-    const EMOJI_LIST = ['🍇', '🍎', '🥦', '🥩', '🧀', '🍝', '🧼', '🏠', '🍪', '🧊', '🍕', '🍷', '📦', '🎁', '🐶', '🧴', '🦷', '🧺', '🧻', '🥖'];
 
     // Debounce username check
     const checkUsername = async (name: string) => {

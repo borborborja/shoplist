@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
-import { translations } from '../../data/constants';
+import { translations, EMOJI_LIST } from '../../data/constants';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 interface AddCategoryModalProps {
     onClose: () => void;
@@ -10,6 +11,8 @@ interface AddCategoryModalProps {
 const AddCategoryModal = ({ onClose }: AddCategoryModalProps) => {
     const { lang, addCategory } = useShopStore();
     const t = translations[lang];
+
+    useScrollLock(true);
 
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('📦');
@@ -23,7 +26,7 @@ const AddCategoryModal = ({ onClose }: AddCategoryModalProps) => {
         }
     };
 
-    const emojis = ['🍇', '🍎', '🥦', '🥩', '🧀', '🍝', '🧼', '🏠', '🍪', '🧊', '🍕', '🍷', '📦', '🎁', '🐶', '🐱', '🛠️', '💊', '👕', '🔋'];
+    const emojis = EMOJI_LIST;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

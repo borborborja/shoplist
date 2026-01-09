@@ -2,6 +2,33 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+html,
+body,
+#root {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+  position: relative;
+  /* Prevent horizontal bounce/overscroll */
+  overscroll-behavior-x: none;
+  /* Allow vertical scrolling but block other gestures like double-tap zoom */
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+}
+
 @layer utilities {
   .glass {
     @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-black/5 dark:border-white/5;
