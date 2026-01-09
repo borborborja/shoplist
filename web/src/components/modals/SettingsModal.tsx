@@ -659,8 +659,8 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
 
     const renderAboutTab = () => (
         <div className="space-y-8 py-4 animate-fade-in flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-3xl p-4 flex items-center justify-center shadow-xl animate-pop border border-slate-100 dark:border-slate-800">
-                <img src="/icon.png" alt="Logo" className="w-full h-full object-contain" />
+            <div className="w-24 h-24 flex items-center justify-center overflow-hidden rounded-[2rem] animate-pop">
+                <img src="/icon.png" alt="Logo" className="w-full h-full object-cover rounded-[2rem]" />
             </div>
 
             <div className="space-y-1">
@@ -712,17 +712,17 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
 
                 {/* Tab Bar */}
                 <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
-                    <button onClick={() => { setActiveTab('account'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-lg shadow-blue-500/10' : 'text-slate-500'}`}>
-                        <Server size={14} /> {t.tabAccount}
+                    <button onClick={() => { setActiveTab('account'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-lg shadow-blue-500/10' : 'text-slate-500'}`}>
+                        <Server size={14} /> <span className="hidden xs:inline">{t.tabAccount}</span>
                     </button>
-                    <button onClick={() => { setActiveTab('catalog'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-lg shadow-amber-500/10' : 'text-slate-500'}`}>
-                        <Package size={14} /> {t.tabCatalog}
+                    <button onClick={() => { setActiveTab('catalog'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'catalog' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-lg shadow-amber-500/10' : 'text-slate-500'}`}>
+                        <Package size={14} /> <span className="hidden xs:inline">{t.tabCatalog}</span>
                     </button>
-                    <button onClick={() => { setActiveTab('other'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-500/10' : 'text-slate-500'}`}>
-                        <Settings2 size={14} /> {t.tabOther}
+                    <button onClick={() => { setActiveTab('other'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-500/10' : 'text-slate-500'}`}>
+                        <Settings2 size={14} /> <span className="hidden xs:inline">{t.tabOther}</span>
                     </button>
-                    <button onClick={() => { setActiveTab('about'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}>
-                        <AlertCircle size={14} /> {t.tabAbout}
+                    <button onClick={() => { setActiveTab('about'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}>
+                        <AlertCircle size={14} /> <span className="hidden xs:inline">{t.tabAbout}</span>
                     </button>
                 </div>
 
