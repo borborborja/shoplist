@@ -58,6 +58,7 @@ const ListView = () => {
         }
 
         setViewMode(modes[nextIdx]);
+        if (navigator.vibrate) navigator.vibrate(10);
     };
 
     const getItemClass = () => {
@@ -173,7 +174,7 @@ const ListView = () => {
                     {/* View Options Menu Trigger */}
                     <div ref={optionsRef}>
                         <button
-                            onClick={() => setShowOptions(!showOptions)}
+                            onClick={() => { setShowOptions(!showOptions); if (navigator.vibrate) navigator.vibrate(10); }}
                             className={`flex items-center justify-center w-9 h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 ${showOptions ? 'ring-2 ring-blue-500/20 text-blue-500' : 'text-slate-500'}`}
                             title={t.viewOptions}
                         >
@@ -189,7 +190,7 @@ const ListView = () => {
 
                                 {/* Sort Mode */}
                                 <button
-                                    onClick={() => { setSortOrder(sortOrder === 'category' ? 'alpha' : 'category'); setShowOptions(false); }}
+                                    onClick={() => { setSortOrder(sortOrder === 'category' ? 'alpha' : 'category'); setShowOptions(false); if (navigator.vibrate) navigator.vibrate(10); }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition group"
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${sortOrder === 'alpha' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
@@ -204,7 +205,7 @@ const ListView = () => {
 
                                 {/* Inline Completed */}
                                 <button
-                                    onClick={() => { setShowCompletedInline(!showCompletedInline); setShowOptions(false); }}
+                                    onClick={() => { setShowCompletedInline(!showCompletedInline); setShowOptions(false); if (navigator.vibrate) navigator.vibrate(10); }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition group"
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showCompletedInline ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>

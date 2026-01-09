@@ -370,7 +370,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             return (
                                 <button
                                     key={key}
-                                    onClick={() => setSettingsActiveCat(key)}
+                                    onClick={() => { setSettingsActiveCat(key); if (navigator.vibrate) navigator.vibrate(10); }}
                                     className={`group relative px-3 py-1.5 rounded-full border-[1.5px] transition-all flex items-center gap-1.5 active:scale-95 shadow-sm ${isActive
                                         ? 'bg-white dark:bg-slate-800 border-blue-500 text-slate-800 dark:text-white shadow-blue-500/10'
                                         : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200'}`}
@@ -382,7 +382,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                         })}
                         {/* Add Category Pill */}
                         <button
-                            onClick={() => setIsCreatingCat(true)}
+                            onClick={() => { setIsCreatingCat(true); if (navigator.vibrate) navigator.vibrate(10); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-[1.5px] border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 transition-all hover:border-blue-400 hover:text-blue-500 active:scale-95 bg-white/50 dark:bg-slate-800/10"
                         >
                             <Plus size={14} />
@@ -427,7 +427,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                                         {EMOJI_LIST.map((emoji) => (
                                             <button
                                                 key={emoji}
-                                                onClick={() => setNewCatIcon(emoji)}
+                                                onClick={() => { setNewCatIcon(emoji); if (navigator.vibrate) navigator.vibrate(10); }}
                                                 className={`aspect-square flex items-center justify-center text-2xl rounded-xl transition-all active:scale-90 ${newCatIcon === emoji ? 'bg-white dark:bg-slate-700 ring-2 ring-blue-500 shadow-sm' : 'hover:bg-white dark:hover:bg-slate-700'}`}
                                             >
                                                 {emoji}
@@ -521,21 +521,21 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             }`}
                     ></div>
                     <button
-                        onClick={() => setTheme('light')}
+                        onClick={() => { setTheme('light'); if (navigator.vibrate) navigator.vibrate(10); }}
                         className={`flex-1 relative z-10 py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${theme === 'light' ? 'text-blue-600' : 'text-slate-400'}`}
                     >
                         <Sun size={18} />
                         <span className="text-[10px] font-bold uppercase">{t.themeLight}</span>
                     </button>
                     <button
-                        onClick={() => setTheme('dark')}
+                        onClick={() => { setTheme('dark'); if (navigator.vibrate) navigator.vibrate(10); }}
                         className={`flex-1 relative z-10 py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${theme === 'dark' ? 'text-blue-400' : 'text-slate-400'}`}
                     >
                         <Moon size={18} />
                         <span className="text-[10px] font-bold uppercase">{t.themeDark}</span>
                     </button>
                     <button
-                        onClick={() => setTheme('amoled')}
+                        onClick={() => { setTheme('amoled'); if (navigator.vibrate) navigator.vibrate(10); }}
                         className={`flex-1 relative z-10 py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${theme === 'amoled' ? 'text-purple-400' : 'text-slate-400'}`}
                     >
                         <div className="w-4.5 h-4.5 rounded-full bg-black border border-slate-700"></div>
@@ -558,7 +558,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             <h4 className="text-xs font-bold text-slate-800 dark:text-white">{t.notifyAdd}</h4>
                             <p className="text-[10px] text-slate-500">Al añadir productos nuevos</p>
                         </div>
-                        <button onClick={() => setNotifyOnAdd(!notifyOnAdd)} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnAdd ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                        <button onClick={() => { setNotifyOnAdd(!notifyOnAdd); if (navigator.vibrate) navigator.vibrate(10); }} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnAdd ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
                             <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${notifyOnAdd ? 'translate-x-5' : 'translate-x-0'}`}></div>
                         </button>
                     </div>
@@ -571,7 +571,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                             <h4 className="text-xs font-bold text-slate-800 dark:text-white">{t.notifyCheck}</h4>
                             <p className="text-[10px] text-slate-500">Al marcar productos como comprados</p>
                         </div>
-                        <button onClick={() => setNotifyOnCheck(!notifyOnCheck)} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnCheck ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                        <button onClick={() => { setNotifyOnCheck(!notifyOnCheck); if (navigator.vibrate) navigator.vibrate(10); }} className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${notifyOnCheck ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
                             <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${notifyOnCheck ? 'translate-x-5' : 'translate-x-0'}`}></div>
                         </button>
                     </div>
@@ -674,16 +674,16 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
                 {/* Tab Bar */}
                 <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
-                    <button onClick={() => setActiveTab('account')} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-lg shadow-blue-500/10' : 'text-slate-500'}`}>
+                    <button onClick={() => { setActiveTab('account'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-lg shadow-blue-500/10' : 'text-slate-500'}`}>
                         <Server size={14} /> {t.tabAccount}
                     </button>
-                    <button onClick={() => setActiveTab('catalog')} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-lg shadow-amber-500/10' : 'text-slate-500'}`}>
+                    <button onClick={() => { setActiveTab('catalog'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-lg shadow-amber-500/10' : 'text-slate-500'}`}>
                         <Package size={14} /> {t.tabCatalog}
                     </button>
-                    <button onClick={() => setActiveTab('other')} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-500/10' : 'text-slate-500'}`}>
+                    <button onClick={() => { setActiveTab('other'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-500/10' : 'text-slate-500'}`}>
                         <Settings2 size={14} /> {t.tabOther}
                     </button>
-                    <button onClick={() => setActiveTab('about')} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}>
+                    <button onClick={() => { setActiveTab('about'); if (navigator.vibrate) navigator.vibrate(10); }} className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}>
                         <AlertCircle size={14} /> {t.tabAbout}
                     </button>
                 </div>
