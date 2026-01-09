@@ -248,193 +248,209 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
     };
 
     // --- Tab Render ---
-    const renderAccountTab = () => (
-        <div className="space-y-6 animate-fade-in">
-            {/* Server URL Configuration (Native Apps Only) */}
-            {isNativePlatform() && (
-                <div className="bg-cyan-50 dark:bg-cyan-900/10 p-4 rounded-xl border border-cyan-100 dark:border-cyan-800/30">
-                    <h4 className="text-xs font-bold text-cyan-500 uppercase mb-3 tracking-wider flex items-center gap-2">
-                        <Wifi size={12} /> Servidor Remoto
-                    </h4>
-                    <div className="flex gap-2 mb-2">
-                        <input
-                            type="url"
-                            value={tempServerUrl}
-                            onChange={(e) => setTempServerUrl(e.target.value)}
-                            placeholder="https://tu-servidor.com"
-                            className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none dark:text-white font-mono"
-                        />
-                        <button
-                            onClick={testConnection}
-                            disabled={connectionStatus.type === 'loading'}
-                            className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                            {connectionStatus.type === 'loading' ? <RefreshCw size={12} className="animate-spin" /> : <Wifi size={12} />}
-                            Test
-                        </button>
-                    </div>
-                    {connectionStatus.msg && (
-                        <p className={`text-[10px] font-bold px-1 flex items-center gap-1 ${connectionStatus.type === 'success' ? 'text-green-500' :
-                            connectionStatus.type === 'error' ? 'text-red-500' : 'text-cyan-500'
-                            }`}>
-                            {connectionStatus.type === 'success' ? <Check size={10} /> :
-                                connectionStatus.type === 'error' ? <AlertCircle size={10} /> : null}
-                            {connectionStatus.msg}
-                        </p>
-                    )}
-                    <p className="text-[10px] text-slate-500 mt-2 px-1">
-                        Introduce la URL de tu servidor ShopList para sincronizar.
-                    </p>
-                </div>
-            )}
+    const renderAccountTab = () => {
+        const canSync = !isNativePlatform() || (connectionStatus.type === 'success');
 
-            {sync.connected && useShopStore.getState().enableUsernames && (
-                <div className={`bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-slide-up`}>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider flex items-center gap-2">
-                        <Settings2 size={12} /> {t.username}
-                    </h4>
-                    <div className="flex gap-2 relative">
-                        <input
-                            type="text"
-                            value={auth.username || ''}
-                            onChange={(e) => {
-                                setUsername(e.target.value);
-                                checkUsername(e.target.value);
-                            }}
-                            disabled={!sync.connected}
-                            placeholder="Nombre..."
-                            className={`flex-grow bg-white dark:bg-darkSurface border rounded-xl px-3 py-2 text-sm focus:outline-none dark:text-white font-bold transition-colors ${nameAvailable === false ? 'border-red-500 ring-1 ring-red-500' :
-                                nameAvailable === true ? 'border-green-500 ring-1 ring-green-500' :
-                                    'border-slate-200 dark:border-slate-700'
-                                }`}
-                        />
-                        <div className="absolute right-3 top-2.5 flex items-center">
-                            {isCheckingName ? <RefreshCw size={14} className="animate-spin text-slate-400" /> :
-                                nameAvailable === true ? <Check size={14} className="text-green-500" /> :
-                                    nameAvailable === false ? <X size={14} className="text-red-500" /> : null}
-                        </div>
-                    </div>
-
-                    {nameAvailable === false && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1 px-1 flex items-center gap-1">
-                            <AlertCircle size={10} /> Este nombre ya está en uso.
-                        </p>
-                    )}
-
-                    <p className="text-[10px] text-slate-500 mt-2 px-1 leading-relaxed">
-                        Este nombre será visible para otros usuarios en la misma lista.
-                        <span className="block mt-1 font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1">
-                            <AlertCircle size={10} /> Si no sincronizas la lista, tu nombre no se envía a ningún servidor.
-                        </span>
-                    </p>
-
-                    {sync.connected && auth.userId && (
-                        <div className="mt-3 flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg w-fit">
-                            <Database size={10} className="text-green-600 dark:text-green-400" />
-                            <span className="text-[10px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide">Usuario registrado en DB</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Sync Section */}
-            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                <h4 className="text-xs font-bold text-blue-500 uppercase mb-3 tracking-wider flex items-center gap-2"><Server size={12} /> {t.sync}</h4>
-                {sync.msg && <div className={`text-xs mb-2 font-mono ${sync.msgType === 'error' ? 'text-red-500' : sync.msgType === 'success' ? 'text-green-500' : 'text-blue-400'}`}>{sync.msg}</div>}
-
-                {/* Merge/Replace Dialog */}
-                {pendingSyncRecord && (
-                    <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl">
-                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3">{t.syncMergeTitle}: {pendingSyncRecord.data.items.length} items</p>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleSyncChoice('merge')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncMerge}</button>
-                            <button onClick={() => handleSyncChoice('replace')} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncReplace}</button>
-                            <button onClick={() => setPendingSyncRecord(null)} className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold text-xs">{t.cancel}</button>
-                        </div>
-                    </div>
-                )}
-
-                {!sync.connected && !pendingSyncRecord ? (
-                    <div>
-                        <button onClick={createSharedList} className="w-full mb-3 bg-white dark:bg-darkSurface border border-blue-200 dark:border-blue-700 text-blue-600 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><Plus size={12} /> {t.createList}</button>
-                        <div className="flex gap-2 mb-3">
-                            <input type="text" value={syncInputCode} onChange={(e) => setSyncInputCode(e.target.value)} placeholder="CODE..." className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs focus:outline-none dark:text-white uppercase tracking-widest font-mono text-center" />
-                            <button onClick={() => connectSync(syncInputCode.toUpperCase())} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs">{t.join}</button>
-                        </div>
-                    </div>
-                ) : sync.connected ? (
-                    <div>
-                        <div className="flex items-center justify-between mb-3 bg-white dark:bg-darkSurface p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-xs text-slate-400 uppercase font-bold pl-1">Code:</span>
-                            <span className="font-mono font-bold text-blue-600 text-sm tracking-widest select-all">{sync.code}</span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => {
-                                        const text = encodeURIComponent(`¡Únete a mi lista de la compra en ShopList!\nCódigo: ${sync.code}\nEnlace directo: ${window.location.origin}/?c=${sync.code}`);
-                                        window.open(`https://wa.me/?text=${text}`, '_blank');
-                                    }}
-                                    className="text-slate-400 hover:text-green-500 p-1.5 transition-colors"
-                                    title="WhatsApp"
-                                >
-                                    <MessageCircle size={14} />
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const text = encodeURIComponent(`ShopList: Lista compartida`);
-                                        const url = encodeURIComponent(`${window.location.origin}/?c=${sync.code}`);
-                                        window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-                                    }}
-                                    className="text-slate-400 hover:text-sky-500 p-1.5 transition-colors"
-                                    title="Telegram"
-                                >
-                                    <Send size={14} />
-                                </button>
-                                <button onClick={() => navigator.clipboard.writeText(sync.code!)} className="text-slate-400 hover:text-blue-500 p-1.5 transition-colors ml-1 border-l border-slate-100 dark:border-slate-800"><Copy size={12} /></button>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button onClick={manualSync} disabled={sync.msg === 'Syncing...'} className="flex-1 text-xs font-bold text-blue-500 bg-white dark:bg-darkSurface border border-blue-100 dark:border-blue-800/30 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-50">
-                                <RotateCw size={12} className={sync.msg === 'Syncing...' ? 'animate-spin' : ''} />
-                                {lang === 'ca' ? 'Sincronitzar' : 'Sincronizar'}
+        return (
+            <div className="space-y-6 animate-fade-in">
+                {/* Server URL Configuration (Native Apps Only) */}
+                {isNativePlatform() && (
+                    <div className="bg-cyan-50 dark:bg-cyan-900/10 p-4 rounded-xl border border-cyan-100 dark:border-cyan-800/30">
+                        <h4 className="text-xs font-bold text-cyan-500 uppercase mb-3 tracking-wider flex items-center gap-2">
+                            <Wifi size={12} /> Servidor Remoto
+                        </h4>
+                        <div className="flex gap-2 mb-2">
+                            <input
+                                type="url"
+                                value={tempServerUrl}
+                                onChange={(e) => setTempServerUrl(e.target.value)}
+                                placeholder="https://tu-servidor.com"
+                                className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none dark:text-white font-mono"
+                            />
+                            <button
+                                onClick={testConnection}
+                                disabled={connectionStatus.type === 'loading'}
+                                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                                {connectionStatus.type === 'loading' ? <RefreshCw size={12} className="animate-spin" /> : <Wifi size={12} />}
+                                Test
                             </button>
-                            <button onClick={disconnectSync} className="flex-1 text-xs font-bold text-red-500 bg-white dark:bg-darkSurface border border-red-100 dark:border-red-800/20 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><LogOut size={12} /> {t.disconnect}</button>
                         </div>
-                        {sync.lastSync && (
-                            <p className="text-[10px] text-slate-400 text-center mt-3 lowercase italic">
-                                {lang === 'ca' ? 'Darrera sincronització' : 'Última sincronización'}: {new Date(sync.lastSync).toLocaleTimeString()}
+                        {connectionStatus.msg && (
+                            <p className={`text-[10px] font-bold px-1 flex items-center gap-1 ${connectionStatus.type === 'success' ? 'text-green-500' :
+                                connectionStatus.type === 'error' ? 'text-red-500' : 'text-cyan-500'
+                                }`}>
+                                {connectionStatus.type === 'success' ? <Check size={10} /> :
+                                    connectionStatus.type === 'error' ? <AlertCircle size={10} /> : null}
+                                {connectionStatus.msg}
                             </p>
                         )}
-                    </div>
-                ) : null}
-
-                {/* History - Always visible if there are codes beyond the current one */}
-                {sync.syncHistory && sync.syncHistory.filter(c => c !== sync.code).length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-blue-100 dark:border-blue-800/20">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 flex items-center gap-1">
-                            <History size={10} /> {t.syncHistory}
+                        <p className="text-[10px] text-slate-500 mt-2 px-1">
+                            Introduce la URL de tu servidor ShopList para sincronizar.
                         </p>
-                        <div className="flex flex-col gap-2">
-                            {sync.syncHistory.filter(c => c !== sync.code).map(code => (
-                                <button
-                                    key={code}
-                                    onClick={() => {
-                                        setSyncInputCode(code);
-                                        connectSync(code);
-                                    }}
-                                    className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group"
-                                >
-                                    <span className="tracking-widest uppercase">{code}</span>
-                                    <span className="text-[9px] font-sans text-blue-500 opacity-0 group-hover:opacity-100 transition uppercase tracking-tighter">
-                                        {t.join}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 )}
+
+                {sync.connected && useShopStore.getState().enableUsernames && (
+                    <div className={`bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-slide-up`}>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider flex items-center gap-2">
+                            <Settings2 size={12} /> {t.username}
+                        </h4>
+                        <div className="flex gap-2 relative">
+                            <input
+                                type="text"
+                                value={auth.username || ''}
+                                onChange={(e) => {
+                                    setUsername(e.target.value);
+                                    checkUsername(e.target.value);
+                                }}
+                                disabled={!sync.connected}
+                                placeholder="Nombre..."
+                                className={`flex-grow bg-white dark:bg-darkSurface border rounded-xl px-3 py-2 text-sm focus:outline-none dark:text-white font-bold transition-colors ${nameAvailable === false ? 'border-red-500 ring-1 ring-red-500' :
+                                    nameAvailable === true ? 'border-green-500 ring-1 ring-green-500' :
+                                        'border-slate-200 dark:border-slate-700'
+                                    }`}
+                            />
+                            <div className="absolute right-3 top-2.5 flex items-center">
+                                {isCheckingName ? <RefreshCw size={14} className="animate-spin text-slate-400" /> :
+                                    nameAvailable === true ? <Check size={14} className="text-green-500" /> :
+                                        nameAvailable === false ? <X size={14} className="text-red-500" /> : null}
+                            </div>
+                        </div>
+
+                        {nameAvailable === false && (
+                            <p className="text-[10px] text-red-500 font-bold mt-1 px-1 flex items-center gap-1">
+                                <AlertCircle size={10} /> Este nombre ya está en uso.
+                            </p>
+                        )}
+
+                        <p className="text-[10px] text-slate-500 mt-2 px-1 leading-relaxed">
+                            Este nombre será visible para otros usuarios en la misma lista.
+                            <span className="block mt-1 font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1">
+                                <AlertCircle size={10} /> Si no sincronizas la lista, tu nombre no se envía a ningún servidor.
+                            </span>
+                        </p>
+
+                        {sync.connected && auth.userId && (
+                            <div className="mt-3 flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg w-fit">
+                                <Database size={10} className="text-green-600 dark:text-green-400" />
+                                <span className="text-[10px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide">Usuario registrado en DB</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Sync Section */}
+                <div className={`p-4 rounded-xl border transition-all duration-300 ${canSync
+                    ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30'
+                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60 grayscale-[0.5]'
+                    }`}>
+                    <h4 className={`text-xs font-bold uppercase mb-3 tracking-wider flex items-center gap-2 ${canSync ? 'text-blue-500' : 'text-slate-400'}`}>
+                        <Server size={12} /> {t.sync}
+                    </h4>
+                    {sync.msg && <div className={`text-xs mb-2 font-mono ${sync.msgType === 'error' ? 'text-red-500' : sync.msgType === 'success' ? 'text-green-500' : 'text-blue-400'}`}>{sync.msg}</div>}
+                    {!canSync && (
+                        <div className="mb-3 px-2 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-center gap-2 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                            <AlertCircle size={12} />
+                            Primero debes conectar a un servidor arriba
+                        </div>
+                    )}
+
+                    {/* Merge/Replace Dialog */}
+                    {pendingSyncRecord && (
+                        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl">
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3">{t.syncMergeTitle}: {pendingSyncRecord.data.items.length} items</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleSyncChoice('merge')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncMerge}</button>
+                                <button onClick={() => handleSyncChoice('replace')} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-xs">{t.syncReplace}</button>
+                                <button onClick={() => setPendingSyncRecord(null)} className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold text-xs">{t.cancel}</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {!sync.connected && !pendingSyncRecord ? (
+                        <div>
+                            <button onClick={createSharedList} disabled={!canSync} className="w-full mb-3 bg-white dark:bg-darkSurface border border-blue-200 dark:border-blue-700 text-blue-600 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"><Plus size={12} /> {t.createList}</button>
+                            <div className="flex gap-2 mb-3">
+                                <input type="text" value={syncInputCode} onChange={(e) => setSyncInputCode(e.target.value)} disabled={!canSync} placeholder="CODE..." className="flex-grow bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs focus:outline-none dark:text-white uppercase tracking-widest font-mono text-center disabled:opacity-50" />
+                                <button onClick={() => connectSync(syncInputCode.toUpperCase())} disabled={!canSync} className="bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs disabled:opacity-50">{t.join}</button>
+                            </div>
+                        </div>
+                    ) : sync.connected ? (
+                        <div>
+                            <div className="flex items-center justify-between mb-3 bg-white dark:bg-darkSurface p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                                <span className="text-xs text-slate-400 uppercase font-bold pl-1">Code:</span>
+                                <span className="font-mono font-bold text-blue-600 text-sm tracking-widest select-all">{sync.code}</span>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => {
+                                            const text = encodeURIComponent(`¡Únete a mi lista de la compra en ShopList!\nCódigo: ${sync.code}\nEnlace directo: ${window.location.origin}/?c=${sync.code}`);
+                                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                                        }}
+                                        className="text-slate-400 hover:text-green-500 p-1.5 transition-colors"
+                                        title="WhatsApp"
+                                    >
+                                        <MessageCircle size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const text = encodeURIComponent(`ShopList: Lista compartida`);
+                                            const url = encodeURIComponent(`${window.location.origin}/?c=${sync.code}`);
+                                            window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+                                        }}
+                                        className="text-slate-400 hover:text-sky-500 p-1.5 transition-colors"
+                                        title="Telegram"
+                                    >
+                                        <Send size={14} />
+                                    </button>
+                                    <button onClick={() => navigator.clipboard.writeText(sync.code!)} className="text-slate-400 hover:text-blue-500 p-1.5 transition-colors ml-1 border-l border-slate-100 dark:border-slate-800"><Copy size={12} /></button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={manualSync} disabled={sync.msg === 'Syncing...'} className="flex-1 text-xs font-bold text-blue-500 bg-white dark:bg-darkSurface border border-blue-100 dark:border-blue-800/30 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-50">
+                                    <RotateCw size={12} className={sync.msg === 'Syncing...' ? 'animate-spin' : ''} />
+                                    {lang === 'ca' ? 'Sincronitzar' : 'Sincronizar'}
+                                </button>
+                                <button onClick={disconnectSync} className="flex-1 text-xs font-bold text-red-500 bg-white dark:bg-darkSurface border border-red-100 dark:border-red-800/20 py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><LogOut size={12} /> {t.disconnect}</button>
+                            </div>
+                            {sync.lastSync && (
+                                <p className="text-[10px] text-slate-400 text-center mt-3 lowercase italic">
+                                    {lang === 'ca' ? 'Darrera sincronització' : 'Última sincronización'}: {new Date(sync.lastSync).toLocaleTimeString()}
+                                </p>
+                            )}
+                        </div>
+                    ) : null}
+
+                    {/* History - Always visible if there are codes beyond the current one */}
+                    {sync.syncHistory && sync.syncHistory.filter(c => c !== sync.code).length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-blue-100 dark:border-blue-800/20">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 flex items-center gap-1">
+                                <History size={10} /> {t.syncHistory}
+                            </p>
+                            <div className="flex flex-col gap-2">
+                                {sync.syncHistory.filter(c => c !== sync.code).map(code => (
+                                    <button
+                                        key={code}
+                                        onClick={() => {
+                                            setSyncInputCode(code);
+                                            connectSync(code);
+                                        }}
+                                        disabled={!canSync}
+                                        className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group disabled:opacity-50"
+                                    >
+                                        <span className="tracking-widest uppercase">{code}</span>
+                                        <span className="text-[9px] font-sans text-blue-500 opacity-0 group-hover:opacity-100 transition uppercase tracking-tighter">
+                                            {t.join}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderCatalogTab = () => (
         <div className="space-y-6 animate-fade-in">
