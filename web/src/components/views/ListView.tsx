@@ -256,11 +256,11 @@ const ListView = () => {
     return (
         <div className="relative">
             {/* List Header */}
-            <div className="flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-md relative overflow-hidden">
+            <div className="flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-md relative">
                 {/* Decorative background circle */}
                 <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
 
-                <div className="flex items-center gap-2 relative z-10 w-full overflow-hidden">
+                <div className="flex items-center gap-2 relative z-10 w-full overflow-hidden rounded-l-xl">
                     {isRenaming ? (
                         <input
                             ref={renameInputRef}
