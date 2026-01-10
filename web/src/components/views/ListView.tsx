@@ -80,7 +80,7 @@ const ListView = () => {
         return '';
     };
 
-    const handleDelete = (id: number, e: React.MouseEvent) => {
+    const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         deleteItem(id);
         triggerHaptic(20);
@@ -117,9 +117,9 @@ const ListView = () => {
         style: any,
         viewMode: string,
         appMode: string,
-        toggleCheck: (id: number) => void,
+        toggleCheck: (id: string) => void,
         setEditingItem: (item: ShopItem) => void,
-        handleDelete: (id: number, e: React.MouseEvent) => void,
+        handleDelete: (id: string, e: React.MouseEvent) => void,
         getItemClass: () => string
     }) => {
         const handleOnClick = () => {

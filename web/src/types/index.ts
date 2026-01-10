@@ -16,7 +16,7 @@ export interface Categories {
 }
 
 export interface ShopItem {
-    id: number;
+    id: string;
     name: string;
     checked: boolean;
     note: string;

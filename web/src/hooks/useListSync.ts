@@ -6,7 +6,6 @@ import { triggerHaptic } from '../utils/haptics';
 export function useListSync() {
     const {
         sync,
-        items,
         categories,
         notifyOnAdd,
         notifyOnCheck,
@@ -39,7 +38,6 @@ export function useListSync() {
                 try {
                     // Validate code
                     const record = await pb.collection('shopping_lists').getFirstListItem(`list_code="${urlCode}"`);
-                    const remoteData = record.data || { items: [], categories: undefined };
 
                     // Confirm if needed
                     const { items: currentItems } = useShopStore.getState();
@@ -59,7 +57,8 @@ export function useListSync() {
 
                     // Connect
                     setSyncState({ msg: 'Connecting...', msgType: 'info' });
-                    syncFromRemote({ items: remoteData.items || [], categories: remoteData.categories || undefined, listName: remoteData.listName });
+                    // Initial sync might be empty for items if using atomic, but we need metadata
+                    // We will let the atomic sync hook handle the items fetch.
                     setSyncState({ connected: true, code: urlCode, recordId: record.id, msg: 'Connected!', msgType: 'success' });
                     addToSyncHistory(urlCode);
                     localStorage.setItem('shopListSyncCode', urlCode);
@@ -79,7 +78,7 @@ export function useListSync() {
                 try {
                     const record = await pb.collection('shopping_lists').getFirstListItem(`list_code="${sync.code}"`);
                     setSyncState({ connected: true, recordId: record.id, msg: 'Reconnected', msgType: 'success' });
-                    if (record.data) syncFromRemote(record.data);
+                    // We don't need to syncFromRemote here because the Atomic Effect will do it.
                 } catch (e) {
                     console.error('Auto-reconnect failed:', e);
                 }
@@ -88,153 +87,124 @@ export function useListSync() {
         handleSyncParam();
     }, [sync.code, sync.connected]);
 
-    // 2. Sync local changes to remote
+    // 2. Initial Fetch & Subscribe to ITEMS (Atomic)
     useEffect(() => {
-        const syncToRemote = async () => {
-            if (sync.connected && sync.recordId) {
-                const currentState = JSON.stringify({ items, categories, listName });
-                if (currentState === lastRemoteStateRef.current) return;
+        if (!sync.connected || !sync.recordId) return;
+        const currentRecordId = sync.recordId;
 
-                try {
-                    await pb.collection('shopping_lists').update(sync.recordId, {
-                        data: { items, categories, listName }
-                    });
-                    lastRemoteStateRef.current = currentState;
-                } catch (e) {
-                    console.error('Failed to sync to remote:', e);
-                }
+        const init = async () => {
+            try {
+                // A. Fetch separate items
+                const records = await pb.collection('shopping_items').getFullList({
+                    filter: `list = "${currentRecordId}"`,
+                    sort: '-created'
+                });
+
+                // Map to ShopItem format
+                const newItems = records.map((r: any) => ({
+                    id: r.id,
+                    name: r.name,
+                    checked: r.checked,
+                    note: r.note,
+                    category: r.category,
+                    updatedAt: Date.now()
+                }));
+
+                // B. Fetch List Metadata (Categories, Name)
+                const listRecord = await pb.collection('shopping_lists').getOne(currentRecordId);
+
+                // C. Update Store (Resetting items to server state)
+                syncFromRemote({
+                    items: newItems,
+                    categories: listRecord.categories || undefined,
+                    listName: listRecord.listName
+                });
+
+                // D. Subscribe to ITEMS
+                await pb.collection('shopping_items').subscribe('*', (e) => {
+                    if (e.record.list !== currentRecordId) return;
+
+                    const { items } = useShopStore.getState();
+
+                    if (e.action === 'create') {
+                        const exists = items.find(i => i.id === e.record.id);
+                        if (!exists) {
+                            const newItem = {
+                                id: e.record.id,
+                                name: e.record.name,
+                                checked: e.record.checked,
+                                note: e.record.note,
+                                category: e.record.category,
+                                updatedAt: Date.now()
+                            };
+                            useShopStore.setState({ items: [newItem, ...items] });
+                            handleNotifications(items, [newItem], notifyOnAdd, notifyOnCheck, lang);
+                        }
+                    } else if (e.action === 'update') {
+                        useShopStore.setState({
+                            items: items.map(i => i.id === e.record.id ? {
+                                ...i,
+                                name: e.record.name,
+                                checked: e.record.checked,
+                                note: e.record.note,
+                                category: e.record.category
+                            } : i)
+                        });
+                    } else if (e.action === 'delete') {
+                        useShopStore.setState({
+                            items: items.filter(i => i.id !== e.record.id)
+                        });
+                    }
+                }, { filter: `list = "${currentRecordId}"` });
+
+                // E. Subscribe to LIST (Metadata only)
+                await pb.collection('shopping_lists').subscribe(currentRecordId, (e) => {
+                    if (e.action === 'update') {
+                        const { categories, listName } = e.record;
+                        useShopStore.setState((state) => ({
+                            categories: categories || state.categories,
+                            listName: listName || state.listName
+                        }));
+                    }
+                });
+
+            } catch (e) {
+                console.error("Sync init failed", e);
+                setSyncState({ msg: 'Sync Error', msgType: 'error' });
             }
         };
 
-        const timer = setTimeout(syncToRemote, 200);
-        return () => clearTimeout(timer);
-    }, [items, categories, listName, sync.connected, sync.recordId]);
+        init();
 
-    // 3. Subscribe to remote updates
+        return () => {
+            pb.collection('shopping_items').unsubscribe();
+            pb.collection('shopping_lists').unsubscribe(currentRecordId);
+        };
+    }, [sync.connected, sync.recordId]);
+
+    // 3. Sync LIST METADATA local changes (Name/Categories) to remote
     useEffect(() => {
-        if (sync.connected && sync.recordId) {
-            pb.collection('shopping_lists').subscribe(sync.recordId, (e) => {
-                if (e.action === 'update' && e.record.data) {
-                    const remoteData = e.record.data;
-                    const remoteItems = (remoteData.items || []) as any[];
-                    const localItems = useShopStore.getState().items;
+        if (!sync.connected || !sync.recordId) return;
+        const currentRecordId = sync.recordId;
 
-                    // MERGE STRATEGY: Last Write Wins per Item
-                    // 1. Map remote items for easy access
-                    const remoteMap = new Map(remoteItems.map(i => [i.id, i]));
+        const syncMetadata = async () => {
+            const state = useShopStore.getState();
+            const payload = { categories: state.categories, listName: state.listName };
+            const str = JSON.stringify(payload);
 
-                    // 2. Build new list
-                    const mergedItems: any[] = [];
-                    const processedIds = new Set<number>();
+            if (str === lastRemoteStateRef.current) return;
 
-                    // Process all local items
-                    for (const localItem of localItems) {
-                        const remoteItem = remoteMap.get(localItem.id);
-                        if (remoteItem) {
-                            // Conflict: Compare timestamps
-                            // If remote is newer, use remote. Else keep local.
-
-                            const localTime = localItem.updatedAt || 0;
-                            const remoteTime = remoteItem.updatedAt || 0;
-
-                            // TOLERANCE FIX:
-                            // If the local item was modified VERY recently (e.g. last 3 seconds),
-                            // we prioritize it to prevent "bouncing" caused by server latency or clock skew
-                            // where an old server state (or slightly future server clock) overwrites a fresh user action.
-                            const isRecentLocalUpdate = (Date.now() - localTime) < 3000;
-
-                            if (remoteTime > localTime && !isRecentLocalUpdate) {
-                                mergedItems.push(remoteItem);
-                            } else {
-                                mergedItems.push(localItem);
-                            }
-                            processedIds.add(localItem.id);
-                        } else {
-                            // Local item NOT in remote.
-                            // FIX: Only delete if the item is older than our last sync.
-                            // If it's newer, it means it's a pending local creation that hasn't reached the server yet.
-                            const localTime = localItem.updatedAt || 0;
-                            // We use a small buffer (e.g. 1000ms) or just raw comparison depending on confidence.
-                            // If lastSync is null/0, we act conservatively and keep the item.
-                            const lastSyncTime = useShopStore.getState().sync.lastSync || 0;
-
-                            // GRACE PERIOD FIX:
-                            // Even if localTime <= lastSyncTime (which can happen if lastSync jumps ahead due to unrelated server echo),
-                            // we MUST preserve items created very recently (e.g. last 5 seconds).
-                            const isVeryRecent = (Date.now() - localTime) < 5000;
-
-                            if (localTime > lastSyncTime || isVeryRecent) {
-                                // Keep it, it's a new local (or recently updated) item pending push
-                                mergedItems.push(localItem);
-                                processedIds.add(localItem.id);
-                            } else {
-                                // It's old enough to have been known by server, and server doesn't have it -> Accepted deletion
-                            }
-                        }
-                    }
-
-                    // Process remaining remote items (newly added by others)
-                    for (const remoteItem of remoteItems) {
-                        if (!processedIds.has(remoteItem.id)) {
-                            // Check if we locally deleted it recently?
-                            // Without tombstones we can't know. We assume it's a new add from other device.
-                            mergedItems.push(remoteItem);
-                        }
-                    }
-
-                    // Sort by id (creation time inverse) or keep order?
-                    // Store expects items sorted by newest first usually.
-                    mergedItems.sort((a, b) => b.id - a.id);
-
-                    // Notifications
-                    handleNotifications(localItems, mergedItems, notifyOnAdd, notifyOnCheck, lang);
-
-                    // Update Store
-                    // DIRTY CHECK FOR LIST NAME
-                    // We only accept remote listName if we don't have a "dirty" local change.
-                    // How do we know if we have a dirty local change?
-                    // We compare current local listName with the one in lastRemoteStateRef (our last synced state).
-                    // If they are different, we have unsynced local changes -> Ignore remote update for listName.
-                    let nameToUse = remoteData.listName;
-
-                    try {
-                        const lastSyncedState = lastRemoteStateRef.current ? JSON.parse(lastRemoteStateRef.current) : null;
-                        const currentLocalName = useShopStore.getState().listName;
-
-                        // If we have a last synced state, and our current local name differs from it,
-                        // it means we have a pending local change.
-                        if (lastSyncedState && currentLocalName !== lastSyncedState.listName) {
-                            nameToUse = currentLocalName; // Keep local name
-                        }
-                    } catch (e) {
-                        // Fallback to remote if something fails
-                    }
-
-                    syncFromRemote({ items: mergedItems, categories: remoteData.categories, listName: nameToUse });
-                    setSyncState({ lastSync: Date.now() });
-                }
-            });
-        }
-        return () => { pb.collection('shopping_lists').unsubscribe('*'); };
-    }, [sync.connected, sync.recordId, sync.syncVersion, notifyOnAdd, notifyOnCheck, lang]);
-
-    const refreshList = async () => {
-        const { sync, setSyncState, syncFromRemote } = useShopStore.getState();
-        if (sync.connected && sync.recordId) {
-            setSyncState({ syncVersion: sync.syncVersion + 1 });
             try {
-                const record = await pb.collection('shopping_lists').getOne(sync.recordId);
-                if (record.data) {
-                    syncFromRemote(record.data);
-                    setSyncState({ lastSync: Date.now() });
-                }
-            } catch (e) {
-                console.error('Failed proactive re-sync:', e);
-            }
-        }
-    };
+                await pb.collection('shopping_lists').update(currentRecordId, payload);
+                lastRemoteStateRef.current = str;
+            } catch (e) { console.error("Meta sync fail", e); }
+        };
 
-    return { lastRemoteStateRef, refreshList };
+        const t = setTimeout(syncMetadata, 1000); // Slower debounce
+        return () => clearTimeout(t);
+    }, [categories, listName, sync.connected, sync.recordId]);
+
+    return { refreshList: () => { } };
 }
 
 function handleNotifications(localItems: any[], remoteItems: any[], notifyOnAdd: boolean, notifyOnCheck: boolean, lang: string) {

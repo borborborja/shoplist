@@ -59,9 +59,9 @@ interface ShopState {
     setShowCompletedInline: (val: boolean) => void;
 
     addItem: (name: string, cat?: string) => void;
-    toggleCheck: (id: number) => void;
-    deleteItem: (id: number) => void;
-    updateItemNote: (id: number, note: string) => void;
+    toggleCheck: (id: string) => void;
+    deleteItem: (id: string) => void;
+    updateItemNote: (id: string, note: string) => void;
     clearCompleted: () => void;
 
     addCategoryItem: (catKey: string, name: LocalizedItem) => void;
@@ -89,7 +89,7 @@ interface ShopState {
 
 export const useShopStore = create<ShopState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             items: [],
             categories: defaultCategories,
             listName: null,
@@ -162,29 +162,139 @@ export const useShopStore = create<ShopState>()(
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setShowCompletedInline: (showCompletedInline) => set({ showCompletedInline }),
 
-            addItem: (name, cat = 'other') => set((state) => ({
-                items: [{ id: Date.now(), name, checked: false, note: '', category: cat, updatedAt: Date.now() }, ...state.items],
-                sync: { ...state.sync, lastLocalInteraction: Date.now() }
-            })),
-            toggleCheck: (id) => set((state) => ({
-                items: state.items.map(i => i.id === id ? { ...i, checked: !i.checked, updatedAt: Date.now() } : i),
-                sync: { ...state.sync, lastLocalInteraction: Date.now() }
-            })),
-            deleteItem: (id) => set((state) => ({
-                // Mark as deleted? No, for now we just delete locally. The Sync hook will handle merging deleted items if needed.
-                // Or better: keep as is, but if we wanted "tombstones" we would mark deletedAt.
-                // Current simpler approach: just delete.
-                items: state.items.filter(i => i.id !== id),
-                sync: { ...state.sync, lastLocalInteraction: Date.now() }
-            })),
-            updateItemNote: (id, note) => set((state) => ({
-                items: state.items.map(i => i.id === id ? { ...i, note, updatedAt: Date.now() } : i),
-                sync: { ...state.sync, lastLocalInteraction: Date.now() }
-            })),
-            clearCompleted: () => set((state) => ({
-                items: state.items.filter(i => !i.checked),
-                sync: { ...state.sync, lastLocalInteraction: Date.now() }
-            })),
+            addItem: async (name, cat = 'other') => {
+                const { sync, items } = get();
+                const tempId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+                // 1. Optimistic Update
+                set({
+                    items: [{
+                        id: tempId,
+                        name,
+                        checked: false,
+                        note: '',
+                        category: cat,
+                        // updatedAt is now server managed, but we keep it for local sorting/logic if needed
+                        updatedAt: Date.now()
+                    }, ...items]
+                });
+
+                // 2. Network Call (if connected)
+                if (sync.connected && sync.recordId) {
+                    try {
+                        const record = await pb.collection('shopping_items').create({
+                            list: sync.recordId,
+                            name,
+                            category: cat,
+                            checked: false,
+                            note: ''
+                        });
+
+                        // 3. Confirm ID
+                        set((state) => {
+                            // Check if subscription already added the real item to avoid duplicates
+                            const exists = state.items.find(i => i.id === record.id);
+                            if (exists) {
+                                // Subscription beat us. Remove temp item.
+                                return { items: state.items.filter(i => i.id !== tempId) };
+                            }
+                            // Swap temp ID for real ID
+                            return { items: state.items.map(i => i.id === tempId ? { ...i, id: record.id, updatedAt: Date.now() } : i) };
+                        });
+                    } catch (e) {
+                        console.error("Failed to add atomic item", e);
+                        // Revert? Or keep as local-only? For now keep local, maybe sync later.
+                        // Setting error msg
+                        set((state) => ({ sync: { ...state.sync, msg: 'Error syncing item', msgType: 'error' } }));
+                    }
+                }
+            },
+            toggleCheck: async (id) => {
+                const { sync, items } = get();
+                const item = items.find(i => i.id === id);
+                if (!item) return;
+
+                // 1. Optimistic
+                set({
+                    items: items.map(i => i.id === id ? { ...i, checked: !i.checked, updatedAt: Date.now() } : i),
+                    sync: { ...sync, lastLocalInteraction: Date.now() }
+                });
+
+                // 2. Network
+                if (sync.connected && !id.startsWith('local_')) {
+                    try {
+                        await pb.collection('shopping_items').update(id, { checked: !item.checked });
+                    } catch (e) {
+                        console.error("Failed to toggle item", e);
+                        // Revert
+                        set((state) => ({
+                            items: state.items.map(i => i.id === id ? { ...i, checked: item.checked } : i)
+                        }));
+                    }
+                }
+            },
+            deleteItem: async (id) => {
+                const { sync, items } = get();
+                const item = items.find(i => i.id === id);
+
+                // 1. Optimistic
+                set({
+                    items: items.filter(i => i.id !== id),
+                    sync: { ...sync, lastLocalInteraction: Date.now() }
+                });
+
+                // 2. Network
+                if (sync.connected && !id.startsWith('local_')) {
+                    try {
+                        await pb.collection('shopping_items').delete(id);
+                    } catch (e) {
+                        console.error("Failed to delete item", e);
+                        // Revert (put it back)
+                        set((state) => ({ items: [item!, ...state.items] }));
+                    }
+                }
+            },
+            updateItemNote: async (id, note) => {
+                const { sync, items } = get();
+
+                // 1. Optimistic
+                set({
+                    items: items.map(i => i.id === id ? { ...i, note, updatedAt: Date.now() } : i),
+                    sync: { ...sync, lastLocalInteraction: Date.now() }
+                });
+
+                // 2. Network
+                if (sync.connected && !id.startsWith('local_')) {
+                    try {
+                        await pb.collection('shopping_items').update(id, { note });
+                    } catch (e) {
+                        console.error("Failed to update note", e);
+                    }
+                }
+            },
+            clearCompleted: async () => {
+                const { sync, items } = get();
+                const completed = items.filter(i => i.checked);
+
+                // 1. Optimistic
+                set({
+                    items: items.filter(i => !i.checked),
+                    sync: { ...sync, lastLocalInteraction: Date.now() }
+                });
+
+                // 2. Network
+                if (sync.connected) {
+                    // Batch delete? PocketBase doesn't support batch delete easily yet (unless exposed)
+                    // We iterate.
+                    for (const item of completed) {
+                        if (!item.id.startsWith('local_')) {
+                            try {
+                                await pb.collection('shopping_items').delete(item.id);
+                            } catch (e) { console.error("Failed to delete completed", item.id); }
+                        }
+                    }
+                }
+            },
 
             setListName: (listName) => set((state) => ({
                 listName,
