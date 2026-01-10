@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Server, Moon, Download, Upload, Trash2, Plus, Copy, LogOut, Package, Settings2, Bell, RefreshCw, History, RotateCw, Send, MessageCircle, Database, Check, Sun, AlertCircle, Wifi } from 'lucide-react';
 import { useShopStore } from '../../store/shopStore';
 import { translations, categoryStyles, EMOJI_LIST } from '../../data/constants';
@@ -46,6 +46,27 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
     const { serverUrl, setServerUrl } = useShopStore();
     const [tempServerUrl, setTempServerUrl] = useState(serverUrl || '');
     const [connectionStatus, setConnectionStatus] = useState<{ msg: string; type: 'success' | 'error' | 'loading' | '' }>({ msg: '', type: '' });
+
+    // Easter Egg State
+    const [showDedication, setShowDedication] = useState(false);
+    const clickCountRef = useRef(0);
+    const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleAboutClick = () => {
+        clickCountRef.current += 1;
+
+        if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+
+        if (clickCountRef.current >= 5) {
+            setShowDedication(true);
+            clickCountRef.current = 0;
+            triggerHaptic(50);
+        } else {
+            clickTimerRef.current = setTimeout(() => {
+                clickCountRef.current = 0;
+            }, 1000);
+        }
+    };
 
     // Test connection to remote server
     const testConnection = async () => {
@@ -794,6 +815,14 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
             <div className="pt-4 opacity-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
             </div>
+
+            {showDedication && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-2xl border border-pink-100 dark:border-pink-800/30 animate-pop">
+                    <p className="text-xs font-bold text-pink-500 dark:text-pink-400 text-center flex flex-col gap-1">
+                        <span>❤️ Dedicat a l'Alba, en Blai i en Lluc 🫶</span>
+                    </p>
+                </div>
+            )}
         </div>
     );
 
@@ -818,7 +847,14 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
                     <button onClick={() => { setActiveTab('other'); triggerHaptic(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'other' ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-lg shadow-slate-500/10' : 'text-slate-500'}`}>
                         <Settings2 size={14} /> <span className="hidden xs:inline">{t.tabOther}</span>
                     </button>
-                    <button onClick={() => { setActiveTab('about'); triggerHaptic(10); }} className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}>
+                    <button
+                        onClick={() => {
+                            setActiveTab('about');
+                            triggerHaptic(10);
+                            handleAboutClick();
+                        }}
+                        className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 ${activeTab === 'about' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-lg shadow-purple-500/10' : 'text-slate-500'}`}
+                    >
                         <AlertCircle size={14} /> <span className="hidden xs:inline">{t.tabAbout}</span>
                     </button>
                 </div>
