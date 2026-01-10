@@ -83,11 +83,12 @@ migrate((db) => {
     });
 
     // Find the shopping_lists collection to link relation properly
-    const lists = db.findCollectionByNameOrId("shopping_lists");
-    const listField = collection.schema.find(f => f.name === 'list');
+    const dao = new Dao(db);
+    const lists = dao.findCollectionByNameOrId("shopping_lists");
+    const listField = collection.schema.getFieldByName('list');
     listField.options.collectionId = lists.id;
 
-    return db.saveCollection(collection);
+    return dao.saveCollection(collection);
 }, (db) => {
     const dao = new Dao(db);
     const collection = dao.findCollectionByNameOrId("shopping_items");
