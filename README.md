@@ -1,170 +1,122 @@
-# <img src="web/public/icon.png" width="48" height="48" valign="middle"> ShoppingList
+<p align="center">
+  <img src="docs/banner.png" alt="ShoppingList Banner" width="100%">
+</p>
 
-A modern, self-hosted shopping list application with real-time synchronization.
+# ShoppingList
 
-**Tech Stack:** Go (PocketBase) + React (Vite, TypeScript, TailwindCSS v4) + Docker
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/borborborja/shoppinglist?style=flat-square&color=blue" alt="Latest Release">
+  <img src="https://img.shields.io/docker/pulls/borborbor/shoppinglist?style=flat-square&color=blue" alt="Docker Pulls">
+  <img src="https://img.shields.io/badge/pwa-supported-purple?style=flat-square" alt="PWA Supported">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
+</p>
 
-![ShoppingList Logo](web/public/icon.png)
-
-![ShoppingList Screenshot](./docs/screenshot.png)
+**ShoppingList** es una aplicación de lista de la compra moderna, auto-alojable y diseñada para la velocidad. Sincroniza en tiempo real entre todos los dispositivos de tu familia, funciona sin internet y ofrece una experiencia visual de primera clase.
 
 ---
 
-## 🚀 Quick Start
+## ✨ Características Principales
 
-### Using Docker Hub (Recommended)
+### 📱 Para los Usuarios
+*   **Sincronización en Tiempo Real**: Los cambios aparecen instantáneamente en todos los dispositivos conectados.
+*   **Modo Offline (PWA)**: Funciona perfectamente sin conexión. Los cambios se guardan y se sincronizan al volver a tener internet.
+*   **Clasificación Inteligente**: Los productos se ordenan automáticamente por categorías (Frutería, Congelados, etc.) para optimizar tu ruta en el supermercado.
+*   **Temas Visuales**:
+    *   ☀️ **Claro**: Fresco y limpio.
+    *   🌑 **Oscuro**: Elegante y cómodo para la vista.
+    *   🖤 **AMOLED**: Negro puro para ahorrar batería en pantallas OLED.
+    *   🤖 **Auto**: Se adapta a tu sistema.
+*   **Multi-idioma**: Español 🇪🇸, Català 🏴 (Estelada/Senyera), English 🇬🇧.
+*   **Apps Nativas**: Soporte para Android e iOS mediante Capacitor.
 
-The easiest way to run ShoppingList is using the pre-built image from Docker Hub.
+<p align="center">
+  <img src="docs/screenshots/app_main.png" alt="App Main View" width="30%">
+  <img src="docs/screenshots/app_dark.png" alt="Dark Mode" width="30%">
+  <img src="docs/screenshots/app_modal.png" alt="Product Modal" width="30%">
+</p>
+
+### 👑 Panel de Administración (`/admin`)
+Gestiona tu instancia con un potente panel de control integrado.
+
+*   **📦 Gestión de Catálogo**:
+    *   Crea, edita y elimina categorías con emojis personalizados y colores.
+    *   Administra productos y sus traducciones.
+    *   **Acciones en Lote**: Selecciona múltiples items para borrar u ocultar rápidamente.
+*   **👥 Gestión de Usuarios (Beta)**:
+    *   Controla quién está conectado a tu lista mediante el sistema de Presencia.
+*   **🔒 Seguridad y Configuración**:
+    *   Cambia el nombre del servidor.
+    *   Cambia la contraseña de administrador.
+    *   **Nuevo: Modo Backend-Only**: Desactiva la web pública con un click para usar el servidor solo como API para las apps móviles.
+    *   **Importar/Exportar**: Copias de seguridad completas de tu catálogo en JSON.
+*   **🔄 Actualizaciones**:
+    *   Comprobador de versiones integrado: Te avisa si hay una nueva versión en GitHub.
+
+<p align="center">
+  <img src="docs/screenshots/admin_dashboard.png" alt="Admin Dashboard" width="45%">
+  <img src="docs/screenshots/admin_settings.png" alt="Admin Settings" width="45%">
+</p>
+
+---
+
+## 🚀 Despliegue Rápido
+
+### Opción 1: Docker Hub (Recomendado)
+
+La forma más fácil de empezar. Actualizado automáticamente con GitHub Actions.
 
 ```bash
-# Download the hub compose file
+# 1. Descarga el fichero docker-compose
 curl -O https://raw.githubusercontent.com/borborborja/shoppinglist/main/docker-compose.hub.yml
 
-# Start the application
+# 2. Arranca el servicio
 docker-compose -f docker-compose.hub.yml up -d
 ```
 
-### Using Docker (Build from source)
+### Opción 2: Compilar desde Código
 
-If you have cloned the repository and want to build the images locally:
-
-```bash
-# Start the application (local build)
-docker-compose up -d
-```
-
-**App Public:** [http://localhost:8090](http://localhost:8090)  
-**App Admin:** [http://localhost:8090/admin](http://localhost:8090/admin) (Requires Admin Login)  
-**System Admin (PocketBase):** [http://localhost:8090/_/](http://localhost:8090/_/)
-
----
-
-## 👑 Admin Panel
-
-The application includes a custom administration dashboard at `/admin` to manage the catalog and application state.
-
-### Tabs & Features
-- **📊 Listas**: Monitor all active shopping lists. Support for bulk selection and mass deletion.
-- **📦 Categorías**: Manage the catalog structure.
-    - Customize icon (emoji) and color.
-    - Localize names (Catalan, Spanish, English).
-    - **Bulk Actions**: Select multiple categories to Hide, Show, or Delete.
-    - **Visibility Dependency**: Hiding a category automatically hides all its products from the catalog.
-- **🛒 Productos**: Manage individual items.
-    - Search by name and filter by category.
-    - **Bulk Actions**: Hide/Show/Delete multiple products.
-    - **Smart Locking**: Products belonging to a hidden category are forced-hidden and cannot be unhidden individually.
-- **👥 Usuarios**: Manage administrator accounts.
-- **⚙️ Configuración**: Global application settings.
-    - **Server Name**: Set a custom name for your instance (displayed in the header).
-
----
-
-## ⚙️ Configuration
-
-### App Settings (via Admin UI)
-You can change these via the `/admin` settings tab:
-- **Server Name**: The name displayed in the top header for all users.
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATA_DIR` | Database storage path | `/pb_data` |
-| `SMTP_ENABLED` | Enable email sending | `false` |
-| `SMTP_HOST` | SMTP server hostname | - |
-| `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` | SMTP username | - |
-| `SMTP_PASSWORD` | SMTP password | - |
-| `SMTP_SENDER_NAME` | Email sender name | `ShoppingList` |
-| `SMTP_SENDER_ADDRESS` | Email sender address | `noreply@example.com` |
-
-### Email Verification
-
-To enable email verification for user registration:
-
-1. Configure SMTP variables in `.env`
-2. Set `SMTP_ENABLED=true`
-3. Restart the container
-
----
-
-## 🔧 Development
-
-### Prerequisites
-
-- Node.js 20+
-- Go 1.23+
-
-### Frontend
+Si prefieres construir tu propia imagen:
 
 ```bash
-cd web
-npm install
-npm run dev  # http://localhost:5173
-```
-
-### Backend
-
-```bash
-go run cmd/server/main.go serve  # http://localhost:8090
+git clone https://github.com/borborborja/shoppinglist.git
+cd shoppinglist
+docker-compose up -d --build
 ```
 
 ---
 
-## 🏗️ Building
+## 🛠 stack Tecnológico
 
-### Docker Build
+Esta aplicación utiliza un stack moderno y eficiente:
 
-```bash
-docker build -t shoppinglist .
-```
-
-### Manual Build
-
-```bash
-# Build frontend
-cd web && npm install && npm run build && cd ..
-
-# Build backend (embeds frontend)
-go build -o shoppinglist ./cmd/server
-```
+*   **Backend**: [PocketBase](https://pocketbase.io/) (Go) - Base de datos en tiempo real, Auth y API en un solo binario.
+*   **Frontend**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/) - Rápido y reactivo.
+*   **Estilos**: [TailwindCSS](https://tailwindcss.com/) - Diseño moderno y responsive.
+*   **Móvil**: [Capacitor](https://capacitorjs.com/) - Convierte la web en apps nativas de Android e iOS.
+*   **Infraestructura**: Docker + GitHub Actions.
 
 ---
 
-## 🔄 GitHub Actions (CI/CD)
+## ⚙️ Variables de Entorno
 
-This repository includes a GitHub Actions workflow that automatically builds and pushes Docker images to Docker Hub.
+Puedes configurar estas variables en tu `docker-compose.yml`:
 
-### Required Secrets
-
-Configure these in your GitHub repository settings (`Settings > Secrets > Actions`):
-
-| Secret | Description |
-|--------|-------------|
-| `DOCKERHUB_USERNAME` | Your Docker Hub username |
-| `DOCKERHUB_TOKEN` | Docker Hub access token ([create one here](https://hub.docker.com/settings/security)) |
-
-### Triggers
-
-- **Push to main/master:** Builds and tags as `latest`
-- **Push tags (v*):** Builds and tags with version
-- **Manual:** Use "Run workflow" button
+| Variable | Descripción | Valor por Defecto |
+|----------|-------------|-------------------|
+| `DATA_DIR` | Archivos de la BBDD | `/pb_data` |
+| `SMTP_ENABLED` | Activar emails | `false` |
+| `SMTP_HOST` | Servidor SMTP | - |
+| `SMTP_PORT` | Puerto SMTP | `587` |
+| `SMTP_USER` | Usuario SMTP | - |
+| `SMTP_PASSWORD` | Contraseña SMTP | - |
 
 ---
 
-## 📱 Features
+## 📄 Licencia
 
-- ✅ **PWA Support** - Install as app on mobile/desktop
-- ✅ **Offline Mode** - Works without internet
-- ✅ **Real-time Sync** - Share lists with family
-- ✅ **Multi-language** - Spanish, Catalan, English
-- ✅ **Dark Mode** - Including AMOLED pure black
-- ✅ **Custom Categories** - Create your own with emojis
-- ✅ **Data Backup** - Export/Import JSON
+Este proyecto está bajo la licencia [MIT](LICENSE). Siéntete libre de forkearlo, modificarlo y usarlo.
 
 ---
-
-## 📄 License
-
-MIT
+<p align="center">
+  <sub>Hecho con ❤️ y mucha cafeína.</sub>
+</p>
