@@ -22,7 +22,7 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
         lang, setLang, theme, setTheme,
         notifyOnAdd, notifyOnCheck, setNotifyOnAdd, setNotifyOnCheck,
         categories, addCategoryItem, removeCategoryItem, addCategory, removeCategory,
-        items, resetDefaults, importData, listName,
+        items, resetDefaults, importData, listName, setListName,
         sync, setSyncState, syncFromRemote, addToSyncHistory,
         auth, setUsername
     } = useShopStore();
@@ -243,6 +243,7 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
         pb.collection('shopping_lists').unsubscribe('*');
         setSyncState({ connected: false, code: null, recordId: null, msg: '' });
         localStorage.removeItem('shopListSyncCode');
+        setListName(null);
     };
 
     const manualSync = async () => {
