@@ -4,7 +4,7 @@ import { Trash2, Loader, RefreshCw, CheckSquare, Square, Ghost, Clock, AlertTria
 import { defaultCategories } from '../../data/constants';
 
 interface ShopItem {
-    id: number;
+    id: string;
     name: string;
     checked: boolean;
     note: string;
@@ -29,6 +29,9 @@ interface ShoppingListRecord {
     updated: string;
     created: string;
     data: ShoppingListData;
+    expand?: {
+        'shopping_items(list)'?: ShopItem[];
+    };
 }
 
 // Default category keys from the system
@@ -54,7 +57,10 @@ const ListsManager = () => {
     const loadLists = async () => {
         setLoading(true);
         try {
-            const result = await pb.collection('shopping_lists').getFullList<ShoppingListRecord>({ sort: '-updated' });
+            const result = await pb.collection('shopping_lists').getFullList<ShoppingListRecord>({
+                sort: '-updated',
+                expand: 'shopping_items(list)'
+            });
             setLists(result);
             setSelectedIds(new Set());
         } catch (e) {
@@ -317,8 +323,13 @@ const ListsManager = () => {
         return new Date(dateStr).toLocaleString();
     };
 
+    const getListItems = (list: ShoppingListRecord): ShopItem[] => {
+        return list.expand?.['shopping_items(list)'] || list.data?.items || [];
+    };
+
     const isPhantom = (list: ShoppingListRecord) => {
-        const itemsCount = list.data?.items?.length || 0;
+        const items = getListItems(list);
+        const itemsCount = items.length;
         const lastUpdate = new Date(list.updated).getTime();
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
@@ -326,7 +337,8 @@ const ListsManager = () => {
     };
 
     const getPhantomReason = (list: ShoppingListRecord) => {
-        const itemsCount = list.data?.items?.length || 0;
+        const items = getListItems(list);
+        const itemsCount = items.length;
         const lastUpdate = new Date(list.updated).getTime();
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
@@ -372,7 +384,8 @@ const ListsManager = () => {
     };
 
     const getItemsWithNotes = (list: ShoppingListRecord) => {
-        return (list.data?.items || []).filter(item => item.note && item.note.trim() !== '');
+        const items = getListItems(list);
+        return items.filter(item => item.note && item.note.trim() !== '');
     };
 
     if (loading && lists.length === 0) return (
@@ -450,6 +463,7 @@ const ListsManager = () => {
                                 const isExpanded = expandedId === list.id;
                                 const customCats = getCustomCategories(list);
                                 const customProducts = getCustomProducts(list);
+                                const items = getListItems(list);
                                 const itemsWithNotes = getItemsWithNotes(list);
                                 const hasCustomData = customCats.length > 0 || customProducts.length > 0;
 
@@ -490,8 +504,8 @@ const ListsManager = () => {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
-                                                <div className={`px-2 py-1 rounded-lg text-xs font-bold ${phantom && list.data.items?.length === 0 ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                                                    {list.data.items?.length || 0}
+                                                <div className={`px-2 py-1 rounded-lg text-xs font-bold ${phantom && items.length === 0 ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                                                    {items.length}
                                                 </div>
                                                 {itemsWithNotes.length > 0 && (
                                                     <div className="flex items-center gap-1 text-amber-500 text-[10px] font-bold" title="Items con notas">
@@ -543,7 +557,7 @@ const ListsManager = () => {
                                                             className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm font-bold border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
                                                         >
                                                             {actionLoading === list.id ? <Loader className="animate-spin" size={14} /> : <X size={14} />}
-                                                            Reset Items ({list.data.items?.length || 0})
+                                                            Reset Items ({items.length})
                                                         </button>
                                                         <button
                                                             onClick={() => handleResetCustomCategories(list)}
@@ -635,12 +649,12 @@ const ListsManager = () => {
                                                     {/* Raw Items Preview */}
                                                     <div>
                                                         <h4 className="text-xs font-black uppercase text-slate-500 mb-3">
-                                                            Lista de Items ({list.data.items?.length || 0})
+                                                            Lista de Items ({items.length})
                                                         </h4>
                                                         <div className="max-h-32 overflow-y-auto bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                            {(list.data.items || []).length > 0 ? (
+                                                            {items.length > 0 ? (
                                                                 <div className="flex flex-wrap gap-1">
-                                                                    {list.data.items?.map(item => (
+                                                                    {items.map(item => (
                                                                         <span
                                                                             key={item.id}
                                                                             className={`text-xs px-2 py-1 rounded ${item.checked ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 line-through' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}
