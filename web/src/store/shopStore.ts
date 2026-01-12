@@ -84,6 +84,7 @@ interface ShopState {
     resetDefaults: () => void;
     importData: (items: ShopItem[], categories: Categories, listName?: string | null) => void;
     addToSyncHistory: (code: string) => void;
+    removeFromSyncHistory: (code: string) => void;
     loadCatalog: () => Promise<void>;
 
     // Auth Actions
@@ -358,6 +359,10 @@ export const useShopStore = create<ShopState>()(
                 const newEntry = { code, title, lastUsed: Date.now() };
                 const history = [newEntry, ...filtered].slice(0, 5);
 
+                return { sync: { ...state.sync, syncHistory: history } };
+            }),
+            removeFromSyncHistory: (code: string) => set((state) => {
+                const history = state.sync.syncHistory.filter(h => typeof h === 'string' ? h !== code : h.code !== code);
                 return { sync: { ...state.sync, syncHistory: history } };
             }),
 

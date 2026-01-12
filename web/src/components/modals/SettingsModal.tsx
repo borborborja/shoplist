@@ -23,7 +23,7 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
         notifyOnAdd, notifyOnCheck, setNotifyOnAdd, setNotifyOnCheck,
         categories, addCategoryItem, removeCategoryItem, addCategory, removeCategory,
         items, resetDefaults, importData, listName, setListName,
-        sync, setSyncState, syncFromRemote, addToSyncHistory,
+        sync, setSyncState, syncFromRemote, addToSyncHistory, removeFromSyncHistory,
         auth, setUsername
     } = useShopStore();
     const t = translations[lang];
@@ -562,23 +562,35 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
                                     const title = typeof item === 'object' ? item.title : undefined;
 
                                     return (
-                                        <button
-                                            key={code}
-                                            onClick={() => {
-                                                setSyncInputCode(code);
-                                                connectSync(code);
-                                            }}
-                                            disabled={!canSync}
-                                            className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group disabled:opacity-50"
-                                        >
-                                            <div className="flex flex-col items-start">
-                                                <span className="tracking-widest uppercase">{code}</span>
-                                                {title && <span className="text-[9px] text-slate-400 font-sans normal-case truncate max-w-[150px]">{title}</span>}
-                                            </div>
-                                            <span className="text-[9px] font-sans text-blue-500 opacity-0 group-hover:opacity-100 transition uppercase tracking-tighter">
-                                                {t.join}
-                                            </span>
-                                        </button>
+                                        <div className="flex bg-white dark:bg-darkSurface border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full group">
+                                            <button
+                                                onClick={() => {
+                                                    setSyncInputCode(code);
+                                                    connectSync(code);
+                                                }}
+                                                disabled={!canSync}
+                                                className="flex-grow flex items-center justify-between px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition disabled:opacity-50 text-left"
+                                            >
+                                                <div className="flex flex-col items-start">
+                                                    <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400 tracking-widest uppercase group-hover:text-blue-500 transition-colors">{code}</span>
+                                                    {title && <span className="text-[9px] text-slate-400 font-sans normal-case truncate max-w-[120px]">{title}</span>}
+                                                </div>
+                                                <span className="text-[9px] font-sans text-blue-500 opacity-0 group-hover:opacity-100 transition uppercase tracking-tighter mr-2">
+                                                    {t.join}
+                                                </span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('¿Eliminar del historial?')) {
+                                                        removeFromSyncHistory(code);
+                                                    }
+                                                }}
+                                                className="px-3 flex items-center justify-center bg-slate-50 dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
                                     );
                                 })}
                             </div>
