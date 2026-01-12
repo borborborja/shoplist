@@ -168,10 +168,15 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
 
             // If no conflict, just sync (if remote has data, use it; otherwise keep local)
             finishConnection(record.id, code, (remoteData.items?.length || 0) > 0 ? remoteData : { items, categories, listName: listName || undefined });
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
             disconnectSync();
-            setSyncState({ msg: 'Code not found', msgType: 'error' });
+            // Distinguish between 404 (Not Found) and other errors
+            if (err.status === 404) {
+                setSyncState({ msg: 'Code not found', msgType: 'error' });
+            } else {
+                setSyncState({ msg: 'Connection failed', msgType: 'error' });
+            }
         }
     };
 
@@ -250,13 +255,42 @@ const SettingsModal = ({ onClose, installPrompt, onInstall }: SettingsModalProps
         if (!sync.connected || !sync.recordId) return;
         setSyncState({ msg: 'Syncing...', msgType: 'info' });
         try {
-            // Push local
-            await pb.collection('shopping_lists').update(sync.recordId, { data: { items, categories, listName } });
-            // Pull remote
-            const record = await pb.collection('shopping_lists').getOne(sync.recordId);
-            if (record.data) syncFromRemote(record.data);
+            // 1. Push Local Metadata (Categories, Name) to JSON blob
+            // Note: We do NOT push items here anymore, as items are atomic.
+            await pb.collection('shopping_lists').update(sync.recordId, { data: { categories, listName } });
+
+            // 2. Fetch Remote Atomic Items
+            const records = await pb.collection('shopping_items').getFullList({
+                filter: `list = "${sync.recordId}"`,
+                sort: '-created'
+            });
+
+            // Map to ShopItem format
+            const remoteItems = records.map((r: any) => ({
+                id: r.id,
+                name: r.name,
+                checked: r.checked,
+                note: r.note,
+                category: r.category,
+                updatedAt: Date.now() // Or r.updated
+            }));
+
+            // 3. Fetch Remote Metadata
+            const listRecord = await pb.collection('shopping_lists').getOne(sync.recordId);
+
+            // 4. Merge & Update Local State
+            // Preserve offline items
+            const offlineItems = items.filter(i => i.id.startsWith('local_'));
+
+            syncFromRemote({
+                items: [...offlineItems, ...remoteItems],
+                categories: listRecord.data?.categories || categories, // Or merge logic if strictly needed
+                listName: listRecord.data?.listName
+            });
+
             setSyncState({ msg: 'Synced just now', msgType: 'success' });
-        } catch {
+        } catch (e) {
+            console.error(e);
             setSyncState({ msg: 'Sync failed', msgType: 'error' });
         }
     };

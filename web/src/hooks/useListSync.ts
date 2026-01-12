@@ -113,14 +113,54 @@ export function useListSync() {
                 // B. Fetch List Metadata (Categories, Name)
                 const listRecord = await pb.collection('shopping_lists').getOne(currentRecordId);
 
-                // C. Update Store (Resetting items to server state)
+                // C. Update Store (Merge logic to preserve offline work)
+                const { items: currentLocalItems, categories: currentLocalCats } = useShopStore.getState();
+                const offlineItems = currentLocalItems.filter(i => i.id.startsWith('local_'));
+
+                // Merge categories: Keep local if not present in remote (preserves custom offline categories)
+                // Remote overwrites local if key exists (Server Authority)
+                const mergedCategories = { ...currentLocalCats, ...(listRecord.data?.categories || {}) };
+
                 syncFromRemote({
-                    items: newItems,
-                    categories: listRecord.data?.categories || undefined,
+                    items: [...offlineItems, ...newItems],
+                    categories: Object.keys(mergedCategories).length > 0 ? mergedCategories : undefined,
                     listName: listRecord.data?.listName
                 });
 
-                // D. Subscribe to ITEMS
+                // D. Push Offline Items to Server (Queue Processing)
+                const pushOfflineItems = async () => {
+                    if (offlineItems.length === 0) return;
+
+                    for (const item of offlineItems) {
+                        try {
+                            const record = await pb.collection('shopping_items').create({
+                                list: currentRecordId,
+                                name: item.name,
+                                category: item.category,
+                                checked: item.checked,
+                                note: item.note
+                            });
+
+                            // Update local ID to real ID
+                            useShopStore.setState((state) => {
+                                // If subscription already added the real item, just remove the local one
+                                const realExists = state.items.find(i => i.id === record.id);
+                                if (realExists) {
+                                    return { items: state.items.filter(i => i.id !== item.id) };
+                                }
+                                // Otherwise replace ID
+                                return {
+                                    items: state.items.map(i => i.id === item.id ? { ...i, id: record.id, updatedAt: Date.now() } : i)
+                                };
+                            });
+                        } catch (e) {
+                            console.error("Failed to sync offline item:", item.name, e);
+                        }
+                    }
+                };
+                pushOfflineItems();
+
+                // E. Subscribe to ITEMS
                 await pb.collection('shopping_items').subscribe('*', (e) => {
                     if (e.record.list !== currentRecordId) return;
 
