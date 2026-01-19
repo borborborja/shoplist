@@ -45,6 +45,7 @@ interface ShopState {
     // Auto-clear state
     autoClearScheduled: number | null;  // timestamp when scheduled
     autoClearMinutes: number;           // minutes to wait (default 60)
+    autoClearEnabled: boolean;
 
     // Sync & Auth
     sync: SyncState;
@@ -78,6 +79,8 @@ interface ShopState {
     clearPreviouslyUsed: () => void;
     scheduleAutoClear: () => void;
     cancelAutoClear: () => void;
+    setAutoClearEnabled: (val: boolean) => void;
+    checkAndAutoClear: () => Promise<void>;
 
     addCategoryItem: (catKey: string, name: LocalizedItem) => Promise<void>;
     removeCategoryItem: (catKey: string, idx: number) => Promise<void>;
@@ -128,6 +131,7 @@ export const useShopStore = create<ShopState>()(
             showCompletedInline: false,
             autoClearScheduled: null,
             autoClearMinutes: 60,
+            autoClearEnabled: true,
 
             setLang: (lang) => set({ lang }),
             setServerName: (serverName) => set({ serverName }),
@@ -183,8 +187,31 @@ export const useShopStore = create<ShopState>()(
 
             addItem: async (name, cat = 'other') => {
                 const { sync, items } = get();
-                const tempId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
+                // Check for existing item with same name (case insensitive)
+                const existing = items.find(i => i.name.toLowerCase() === name.toLowerCase());
+                if (existing) {
+                    // If already active and in list, just skip or maybe update category if it was "other"
+                    if (existing.inList && !existing.checked) return;
+
+                    // Reuse existing item
+                    set({
+                        items: items.map(i => i.id === existing.id ? { ...i, inList: true, checked: false, category: cat, updatedAt: Date.now() } : i),
+                        sync: { ...sync, lastLocalInteraction: Date.now() }
+                    });
+
+                    if (sync.connected && !existing.id.startsWith('local_')) {
+                        try {
+                            await pb.collection('shopping_items').update(existing.id, { in_list: true, checked: false, category: cat });
+                        } catch (e) {
+                            console.error("Failed to reuse item", e);
+                        }
+                    }
+                    return;
+                }
+
+                const tempId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                // ... (rest of addItem code remains same)
                 // 1. Optimistic Update
                 set({
                     items: [{
@@ -294,23 +321,21 @@ export const useShopStore = create<ShopState>()(
             },
             clearCompleted: async () => {
                 const { sync, items } = get();
-                const completed = items.filter(i => i.checked);
+                const completed = items.filter(i => i.checked && i.inList !== false);
 
-                // 1. Optimistic
+                // 1. Optimistic: Mark as not in list (moved to recently used)
                 set({
-                    items: items.filter(i => !i.checked),
+                    items: items.map(i => i.checked ? { ...i, checked: false, inList: false, updatedAt: Date.now() } : i),
                     sync: { ...sync, lastLocalInteraction: Date.now() }
                 });
 
                 // 2. Network
                 if (sync.connected) {
-                    // Batch delete? PocketBase doesn't support batch delete easily yet (unless exposed)
-                    // We iterate.
                     for (const item of completed) {
                         if (!item.id.startsWith('local_')) {
                             try {
-                                await pb.collection('shopping_items').delete(item.id);
-                            } catch (e) { console.error("Failed to delete completed", item.id); }
+                                await pb.collection('shopping_items').update(item.id, { in_list: false, checked: false });
+                            } catch (e) { console.error("Failed to move completed to recently used", item.id); }
                         }
                     }
                 }
@@ -384,6 +409,22 @@ export const useShopStore = create<ShopState>()(
 
             // Cancel auto-clear
             cancelAutoClear: () => set({ autoClearScheduled: null }),
+
+            setAutoClearEnabled: (autoClearEnabled) => set({ autoClearEnabled }),
+
+            checkAndAutoClear: async () => {
+                const { items, autoClearEnabled, clearCompleted } = get();
+                if (!autoClearEnabled) return;
+
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
+
+                const hasStaleItems = items.some(i => i.checked && i.inList !== false && i.updatedAt && (now - i.updatedAt > oneHour));
+
+                if (hasStaleItems) {
+                    await clearCompleted();
+                }
+            },
 
 
             setListName: (listName) => set((state) => ({
@@ -638,6 +679,7 @@ export const useShopStore = create<ShopState>()(
                 enableUsernames: false,
                 sortOrder: state.sortOrder,
                 showCompletedInline: state.showCompletedInline,
+                autoClearEnabled: state.autoClearEnabled,
                 // Keep code/recordId for reconnection, but reset connection status
                 sync: {
                     connected: false,

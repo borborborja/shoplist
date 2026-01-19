@@ -116,6 +116,7 @@ function App() {
 
       await ensureGuestAuth();
       await refreshList();
+      await useShopStore.getState().checkAndAutoClear();
     };
 
     const handleVisibilityChange = () => {

@@ -7,7 +7,7 @@ import ProductModal from '../modals/ProductModal';
 import { triggerHaptic } from '../../utils/haptics';
 
 const ListView = () => {
-    const { items, categories, lang, viewMode, appMode, setViewMode, toggleCheck, clearCompleted, removeFromList, addBackToList, clearPreviouslyUsed, scheduleAutoClear, cancelAutoClear, autoClearScheduled, autoClearMinutes, sync, activeUsers, sortOrder, setSortOrder, showCompletedInline, setShowCompletedInline, listName, setListName } = useShopStore();
+    const { items, categories, lang, viewMode, appMode, setViewMode, toggleCheck, clearCompleted, removeFromList, addBackToList, clearPreviouslyUsed, scheduleAutoClear, cancelAutoClear, autoClearScheduled, autoClearMinutes, autoClearEnabled, setAutoClearEnabled, sync, activeUsers, sortOrder, setSortOrder, showCompletedInline, setShowCompletedInline, listName, setListName } = useShopStore();
     const t = translations[lang];
     const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
     const [showOptions, setShowOptions] = useState(false);
@@ -318,6 +318,21 @@ const ListView = () => {
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-2 flex-wrap">
                     <span>{t.completed}</span>
                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{completedItems.length}</span>
+
+                    {/* Auto-cleanup checkbox */}
+                    <div
+                        className="flex items-center gap-1.5 ml-1 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700/50 cursor-pointer active:scale-95 transition-transform"
+                        onClick={() => { setAutoClearEnabled(!autoClearEnabled); triggerHaptic(10); }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={autoClearEnabled}
+                            onChange={() => { }}
+                            className="accent-blue-500 w-3 h-3 cursor-pointer"
+                        />
+                        <span className="text-[10px] normal-case tracking-normal">{(t as any).autoCleanup || 'Autolimpieza'}</span>
+                    </div>
+
                     {completedItems.length > 0 && (
                         <>
                             <button
