@@ -77,21 +77,22 @@ const ListView = () => {
     // Planner mode: inList=true are "active", inList=false are "previously used"
     // Shopping mode: checked=false are "active", checked=true are "completed"
 
-    // For planner: "previously used" items (inList === false)
-    const previouslyUsedItems = items.filter(i => i.inList === false).sort((a, b) => a.name.localeCompare(b.name));
+    // For planner: items that are NOT in list OR are checked (history)
+    // For shopping: only items that are actually marked as not in list
+    const previouslyUsedItems = items.filter(i =>
+        i.inList === false || (appMode === 'planning' && i.checked)
+    ).sort((a, b) => a.name.localeCompare(b.name));
 
-    // For shopping: completed items (checked = true)
+    // For shopping: completed items (checked = true and still in list)
     const completedItems = items.filter(i => i.checked && i.inList !== false).sort((a, b) => a.name.localeCompare(b.name));
 
     // Active items to show (depends on mode)
-    // Planner: show items that are inList (or undefined/true - backwards compatible)
-    // Shopping: show items that are not checked (and in list)
     const getActiveItems = () => {
         if (appMode === 'planning') {
-            // In planner, active = inList !== false (true or undefined)
-            return items.filter(i => i.inList !== false);
+            // In planner, active = inList (true/undefined) AND NOT checked
+            return items.filter(i => i.inList !== false && !i.checked);
         } else {
-            // In shopping, active = not checked AND inList !== false
+            // In shopping, active = (not checked AND in list) OR (checked if showCompletedInline)
             if (showCompletedInline) {
                 return items.filter(i => i.inList !== false);
             }
@@ -266,15 +267,19 @@ const ListView = () => {
         triggerHaptic(20);
     };
 
-    // Section for "Previously Used" items (planner mode only)
+    // Section for "Previously Used" items
     const PreviouslyUsedSection = () => {
         if (appMode !== 'planning' || previouslyUsedItems.length === 0) return null;
+
+        // In shopping mode, we might want to hide it if user hasn't scrolled?
+        // But the user specifically asked for them to "go down" there.
+
         return (
             <div className={`mt-8 mb-8 pt-6 border-t border-dashed border-slate-200 dark:border-slate-700/50 opacity-60 hover:opacity-100 transition-opacity`}>
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
                     <span>{(t as any).previouslyUsed || 'Utilizados anteriormente'}</span>
                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{previouslyUsedItems.length}</span>
-                    {previouslyUsedItems.length > 0 && (
+                    {previouslyUsedItems.length > 0 && appMode === 'planning' && (
                         <button
                             onClick={() => { if (confirm(t.clearComp + '?')) { clearPreviouslyUsed(); triggerHaptic(20); } }}
                             className="ml-2 text-[10px] font-bold text-red-400 hover:text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-md transition uppercase tracking-wider hover:bg-red-100"
